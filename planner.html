@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f0e8;--surface:#fffdf9;--surface2:#f0ebe0;--border:#d9d0bc;
+  --accent:#b85c2a;--accent2:#2a6bb8;--text:#1a1510;--text2:#6b6055;--text3:#9b9088;
+  --danger:#c0392b;--success:#27ae60;--warn:#d68910;--purple:#7c3aed;
+  --shadow:0 2px 12px rgba(30,20,10,.10);--radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LOGIN SCREEN */
+#loginScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-box{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:48px 40px;text-align:center;box-shadow:0 8px 40px rgba(30,20,10,.15);max-width:400px;width:100%;}
+.login-box h1{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--accent);margin-bottom:8px;}
+.login-box p{color:var(--text2);font-size:.95rem;margin-bottom:32px;line-height:1.6;}
+.google-btn{display:inline-flex;align-items:center;gap:12px;padding:13px 28px;border-radius:10px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
+.google-btn:hover{border-color:var(--accent2);background:#f0f4ff;box-shadow:0 4px 20px rgba(42,107,184,.15);}
+.google-btn img{width:22px;height:22px;}
+.login-status{margin-top:16px;font-size:.82rem;color:var(--text3);}
+
+/* ── SYNC STATUS */
+#syncBar{display:none;align-items:center;gap:8px;padding:5px 14px;font-size:.78rem;font-weight:600;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text3);transition:all .3s;cursor:default;}
+#syncBar.syncing{color:var(--warn);border-color:#f5e0aa;background:#fffbf0;}
+#syncBar.synced{color:var(--success);border-color:#b8e0c4;background:#f0faf5;}
+#syncBar.error{color:var(--danger);border-color:#f5c6c0;background:#fff5f5;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* ── USER BADGE */
+.user-badge{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 6px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;}
+.user-badge:hover{border-color:var(--danger);background:#fff5f5;}
+.user-badge img{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border);}
+.user-badge span{font-size:.78rem;font-weight:600;color:var(--text2);}
+
+/* ── HEADER */
+header{background:var(--surface);border-bottom:2px solid var(--border);padding:14px 32px 0;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;}
+.header-top h1{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--accent);letter-spacing:-.5px;}
+.header-top h1 span{color:var(--text2);font-size:.9rem;font-family:'DM Sans',sans-serif;font-weight:300;margin-left:10px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.tabs-bar{display:flex;align-items:flex-end;gap:4px;overflow-x:auto;scrollbar-width:none;}
+.tabs-bar::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;padding:8px 20px;border:2px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .18s;white-space:nowrap;position:relative;top:2px;}
+.tab-btn:hover{background:var(--border);color:var(--text);}
+.tab-btn.active{background:var(--surface);color:var(--accent);border-color:var(--border);border-bottom-color:var(--surface);font-weight:600;}
+.tab-btn.todo-dash-tab.active{color:var(--purple);}
+.tab-btn.bookmarks-tab.active{color:var(--accent2);}
+.tab-add-btn{padding:7px 14px;border-radius:8px 8px 0 0;border:2px dashed var(--border);background:transparent;color:var(--text3);cursor:pointer;font-size:1.2rem;transition:all .18s;top:2px;position:relative;}
+.tab-add-btn:hover{color:var(--accent);border-color:var(--accent);}
+
+/* ── LAYOUT */
+.main{max-width:960px;margin:0 auto;padding:32px 20px 60px;}
+.panel{display:none;}.panel.active{display:block;}
+
+/* ── SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+.section-header h2{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--text);}
+.section-header h2 em{font-style:normal;color:var(--accent);}
+
+/* ── FORMS */
+.add-form{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:28px;box-shadow:var(--shadow);}
+.add-form h3{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:16px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid .full{grid-column:1/-1;}
+label{font-size:.8rem;font-weight:600;color:var(--text2);display:block;margin-bottom:5px;}
+input[type=text],input[type=url],input[type=date],textarea,select{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;transition:border-color .15s;outline:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:68px;}
+.form-actions{margin-top:14px;display:flex;justify-content:flex-end;gap:10px;}
+
+/* ── BUTTONS */
+.btn{padding:8px 20px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;border:none;transition:all .16s;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#9a4820;}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+.btn-blue{background:var(--accent2);color:#fff;}.btn-blue:hover{background:#235a9e;}
+.btn-purple{background:var(--purple);color:#fff;}.btn-purple:hover{background:#6d28d9;}
+.btn-sm{padding:5px 13px;font-size:.8rem;}
+
+/* ── FILTERS */
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-btn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .15s;}
+.filter-btn:hover,.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.filter-btn.done-filter.active{background:var(--success);border-color:var(--success);}
+
+/* ── ITEM CARDS */
+.items-list{display:flex;flex-direction:column;gap:12px;}
+.item-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);transition:all .18s;}
+.item-card:hover{box-shadow:0 4px 20px rgba(30,20,10,.13);}
+.item-card.done{opacity:.6;border-color:var(--success);}
+.item-card.done .item-title{text-decoration:line-through;color:var(--text3);}
+.item-top{display:flex;align-items:flex-start;gap:12px;}
+.item-check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);background:var(--bg);cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
+.item-check:hover{border-color:var(--accent);}
+.item-check.checked{background:var(--success);border-color:var(--success);color:#fff;}
+.item-content{flex:1;min-width:0;}
+.item-title{font-weight:600;font-size:.97rem;color:var(--text);margin-bottom:4px;word-break:break-word;}
+.item-desc{font-size:.84rem;color:var(--text2);margin-bottom:6px;word-break:break-word;line-height:1.5;}
+.item-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.item-link a{font-size:.8rem;color:var(--accent2);text-decoration:none;font-weight:500;}
+.item-link a:hover{text-decoration:underline;}
+.item-info-tag{font-size:.78rem;color:var(--text3);background:var(--surface2);border-radius:5px;padding:2px 8px;border:1px solid var(--border);}
+.item-priority{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:2px 8px;border-radius:20px;}
+.priority-high{background:#fdecea;color:#c0392b;}
+.priority-medium{background:#fef9ec;color:#d68910;}
+.priority-low{background:#eafaf1;color:#27ae60;}
+.item-actions{display:flex;gap:5px;margin-left:auto;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+.icon-btn{background:none;border:1.5px solid var(--border);border-radius:6px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text3);transition:all .15s;}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+.icon-btn.del:hover{border-color:var(--danger);color:var(--danger);}
+.send-btn{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:5px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.send-btn-red{background:#fdecea;color:#c0392b;border:1px solid #f5c6c0;}.send-btn-red:hover{background:#c0392b;color:#fff;}
+
+.empty-state{text-align:center;padding:36px 20px;color:var(--text3);}
+.empty-state .icon{font-size:2.5rem;margin-bottom:10px;}
+.empty-state p{font-size:.9rem;}
+
+/* ── STATS BAR */
+.stats-bar{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;font-size:.82rem;color:var(--text2);font-weight:500;}
+.stat strong{color:var(--accent);}
+
+/* ══ TODO DASHBOARD ══ */
+.dash-section-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.badge{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 10px;border-radius:20px;}
+.badge-red{background:#fdecea;color:#c0392b;}
+.badge-purple{background:#f0ebff;color:var(--purple);}
+.high-prio-section{background:var(--surface);border:2px solid #f5c6c0;border-radius:var(--radius);padding:20px 22px;margin-bottom:32px;box-shadow:var(--shadow);}
+.high-prio-add{display:flex;gap:10px;margin-top:14px;}
+.high-prio-add input{flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;}
+.high-prio-add input:focus{border-color:#c0392b;}
+.hp-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.hp-item:last-child{border-bottom:none;}
+.hp-check{width:20px;height:20px;border-radius:5px;border:2px solid #e57a6e;background:var(--bg);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
+.hp-check:hover{border-color:#c0392b;}
+.hp-check.checked{background:var(--success);border-color:var(--success);color:#fff;}
+.hp-body{flex:1;min-width:0;}
+.hp-text{font-weight:600;font-size:.93rem;word-break:break-word;}
+.hp-text.done{text-decoration:line-through;color:var(--text3);}
+.hp-src{font-size:.72rem;color:var(--text3);margin-top:1px;}
+.hp-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px;border-radius:4px;flex-shrink:0;transition:color .15s;}
+.hp-del:hover{color:var(--danger);}
+
+/* ── WEEKLY */
+.week-section{margin-bottom:16px;}
+.week-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.week-nav-label{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text);flex:1;}
+.week-nav-label small{font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--text3);font-weight:400;display:block;margin-top:2px;}
+.week-nav-btns{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.week-nav-btn{padding:5px 11px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;}
+.week-nav-btn:hover{border-color:var(--purple);color:var(--purple);}
+.week-nav-btn.today-btn{background:var(--purple);color:#fff;border-color:var(--purple);}
+.week-picker{padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;outline:none;}
+.week-picker:focus{border-color:var(--purple);}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+@media(max-width:900px){.days-grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:600px){.days-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:400px){.days-grid{grid-template-columns:1fr;}}
+.day-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 12px 8px;box-shadow:var(--shadow);min-height:110px;display:flex;flex-direction:column;gap:6px;}
+.day-card.weekend{border-color:#c9b8e8;background:#faf7ff;}
+.day-card.today{border-color:var(--purple);box-shadow:0 0 0 3px #ede9fe,var(--shadow);}
+.day-card.past{opacity:.75;background:var(--surface2);}
+.day-name{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);}
+.day-date{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text);line-height:1;margin-bottom:2px;}
+.day-card.today .day-date{color:var(--purple);}
+.day-items{flex:1;display:flex;flex-direction:column;gap:4px;}
+.day-task{display:flex;align-items:flex-start;gap:5px;padding:3px 0;}
+.day-check{width:15px;height:15px;border-radius:3px;border:2px solid var(--border);background:var(--bg);cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;}
+.day-check:hover{border-color:var(--purple);}
+.day-check.checked{background:var(--success);border-color:var(--success);color:#fff;}
+.day-task-text{font-size:.78rem;color:var(--text);word-break:break-word;line-height:1.35;flex:1;}
+.day-task-text.done{text-decoration:line-through;color:var(--text3);}
+.day-task-src{font-size:.65rem;color:var(--text3);background:var(--surface2);border-radius:3px;padding:0 4px;}
+.day-task-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:1px 2px;border-radius:3px;opacity:0;transition:all .15s;flex-shrink:0;}
+.day-task:hover .day-task-del{opacity:1;}
+.day-task-del:hover{color:var(--danger);}
+.day-add-row{display:flex;gap:4px;margin-top:auto;padding-top:5px;border-top:1px solid var(--border);}
+.day-add-input{flex:1;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-size:.74rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;min-width:0;}
+.day-add-input:focus{border-color:var(--purple);}
+.day-add-btn{padding:4px 8px;border-radius:4px;background:var(--purple);color:#fff;border:none;cursor:pointer;font-size:.72rem;font-weight:700;transition:background .15s;flex-shrink:0;}
+.day-add-btn:hover{background:#6d28d9;}
+
+/* ── HISTORY */
+.history-panel{display:none;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-top:20px;box-shadow:var(--shadow);}
+.history-panel.open{display:block;}
+.history-week{margin-bottom:20px;}
+.history-week-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text2);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.history-days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+@media(max-width:900px){.history-days-grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:700px){.history-days-grid{grid-template-columns:1fr 1fr;}}
+.h-day{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.h-day-name{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:1px;}
+.h-day-date{font-size:.82rem;font-weight:600;color:var(--text2);margin-bottom:5px;}
+.h-task{display:flex;align-items:flex-start;gap:4px;font-size:.75rem;color:var(--text2);padding:2px 0;}
+.h-task.done{color:var(--text3);}
+.h-task-check{font-size:10px;flex-shrink:0;margin-top:1px;}
+
+/* ── BOOKMARKS */
+.bm-cats-bar{display:flex;align-items:flex-end;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:2px solid var(--border);}
+.bm-cats-bar::-webkit-scrollbar{display:none;}
+.bm-cat-tab{font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:500;padding:7px 18px;border:1.5px solid transparent;border-bottom:none;border-radius:7px 7px 0 0;background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;position:relative;top:2px;}
+.bm-cat-tab:hover{background:var(--border);color:var(--text);}
+.bm-cat-tab.active{background:var(--surface);color:var(--accent2);border-color:var(--border);border-bottom-color:var(--surface);font-weight:600;}
+.bm-cat-add-btn{padding:6px 12px;border-radius:7px 7px 0 0;border:1.5px dashed var(--border);background:transparent;color:var(--text3);cursor:pointer;font-size:1.1rem;transition:all .15s;top:2px;position:relative;}
+.bm-cat-add-btn:hover{color:var(--accent2);border-color:var(--accent2);}
+.bm-panel{display:none;padding-top:20px;}.bm-panel.active{display:block;}
+.bm-add-form{background:var(--surface);border:1.5px solid var(--accent2);border-radius:var(--radius);padding:18px 20px;margin-bottom:22px;box-shadow:var(--shadow);}
+.bm-add-form h3{font-size:.76rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2);margin-bottom:14px;}
+.bm-add-form input:focus,.bm-add-form textarea:focus{border-color:var(--accent2);}
+.bm-cat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.bm-cat-title{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--text);}
+.bm-cat-title em{font-style:normal;color:var(--accent2);}
+.bookmark-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.bookmark-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:all .18s;display:flex;flex-direction:column;gap:8px;}
+.bookmark-card:hover{box-shadow:0 4px 20px rgba(30,20,10,.13);transform:translateY(-1px);}
+.bookmark-top{display:flex;align-items:flex-start;gap:10px;}
+.bookmark-favicon{width:32px;height:32px;border-radius:7px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid var(--border);overflow:hidden;}
+.bookmark-favicon img{width:100%;height:100%;object-fit:cover;}
+.bookmark-info{flex:1;min-width:0;}
+.bookmark-name{font-weight:600;font-size:.95rem;color:var(--text);margin-bottom:2px;word-break:break-word;}
+.bookmark-url{font-size:.78rem;color:var(--text3);word-break:break-all;line-height:1.4;}
+.bookmark-note{font-size:.82rem;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:8px;}
+.bookmark-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;}
+.bookmark-visit{font-size:.8rem;padding:5px 13px;border-radius:6px;background:var(--accent2);color:#fff;text-decoration:none;font-weight:600;transition:background .15s;}
+.bookmark-visit:hover{background:#235a9e;}
+
+/* ── MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,15,10,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:14px;padding:28px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:modalIn .2s ease;}
+@keyframes modalIn{from{transform:scale(.94);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal h3{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:18px;color:var(--text);}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.modal-subtitle{font-size:.8rem;color:var(--text3);margin-bottom:14px;margin-top:-10px;}
+.modal-choice{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.choice-btn{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--border);border-radius:9px;background:var(--bg);cursor:pointer;text-align:left;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.choice-btn:hover{border-color:var(--accent);}
+.choice-btn.red-choice:hover{border-color:#c0392b;background:#fdecea;}
+.choice-btn.purple-choice:hover{border-color:var(--purple);background:#f0ebff;}
+.choice-icon{font-size:1.4rem;flex-shrink:0;}
+.choice-label{font-weight:600;font-size:.9rem;color:var(--text);}
+.choice-desc{font-size:.78rem;color:var(--text3);margin-top:2px;}
+
+/* ── TAB CTX */
+.tab-ctx{position:fixed;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:300;display:none;min-width:140px;}
+.tab-ctx.open{display:block;}
+.tab-ctx button{display:block;width:100%;text-align:left;padding:7px 12px;border:none;background:none;color:var(--text2);font-size:.85rem;cursor:pointer;border-radius:5px;font-family:'DM Sans',sans-serif;}
+.tab-ctx button:hover{background:var(--surface2);color:var(--text);}
+.tab-ctx button.danger:hover{color:var(--danger);background:#fdecea;}
+
+.divider{border:none;border-top:2px solid var(--border);margin:28px 0;}
+
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .main{padding:20px 12px 60px;}
+  header{padding:10px 16px 0;}
+  .header-top h1{font-size:1.3rem;}
+  .bookmark-grid{grid-template-columns:1fr;}
+  .item-actions{gap:3px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>Planner</h1>
+    <p>Osobni planer sinkroniziran<br>između svih tvojih uređaja.</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <img src="https://www.google.com/favicon.ico" alt="G">
+      Prijavi se s Google računom
+    </button>
+    <div class="login-status" id="loginStatus">Učitavanje...</div>
+  </div>
+</div>
+
+<header>
+  <div class="header-top">
+    <h1>Planner <span>osobni planer</span></h1>
+    <div class="header-right">
+      <div id="syncBar"><span class="sync-dot"></span><span id="syncText">Sinkronizirano</span></div>
+      <div class="user-badge" id="userBadge" onclick="signOut()" title="Odjava">
+        <img id="userPhoto" src="" alt="">
+        <span id="userName"></span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs-bar" id="tabsBar">
+    <button class="tab-add-btn" onclick="openNewTabModal()" title="Dodaj novi tab">＋</button>
+  </div>
+</header>
+
+<div class="main" id="mainContent"></div>
+
+<!-- Tab context menu -->
+<div class="tab-ctx" id="tabCtx">
+  <button onclick="renameTabCtx()">✏️ Preimenuj</button>
+  <button onclick="deleteTabCtx()" class="danger">🗑️ Obriši tab</button>
+</div>
+
+<!-- New tab modal -->
+<div class="modal-overlay" id="newTabModal">
+  <div class="modal">
+    <h3>Novi tab</h3>
+    <label>Naziv taba</label>
+    <input type="text" id="newTabName" placeholder="npr. Kuća, Posao, Alat..." maxlength="30">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('newTabModal')">Odustani</button>
+      <button class="btn btn-primary" onclick="confirmNewTab()">Dodaj tab</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit item modal -->
+<div class="modal-overlay" id="editItemModal">
+  <div class="modal">
+    <h3>Uredi stavku</h3>
+    <div class="form-grid">
+      <div class="full"><label>Opis *</label><input type="text" id="editDesc" placeholder="Opis zadatka"></div>
+      <div><label>Link</label><input type="url" id="editLink" placeholder="https://..."></div>
+      <div><label>Prioritet</label>
+        <select id="editPriority">
+          <option value="low">Nizak</option><option value="medium">Srednji</option><option value="high">Visok</option>
+        </select>
+      </div>
+      <div class="full"><label>Dodatne informacije</label><textarea id="editInfo" placeholder="Napomene, cijena, detalji..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('editItemModal')">Odustani</button>
+      <button class="btn btn-primary" onclick="confirmEditItem()">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename tab modal -->
+<div class="modal-overlay" id="renameTabModal">
+  <div class="modal">
+    <h3>Preimenuj tab</h3>
+    <label>Novi naziv</label>
+    <input type="text" id="renameTabInput" maxlength="30">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('renameTabModal')">Odustani</button>
+      <button class="btn btn-primary" onclick="confirmRenameTab()">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- New bookmark category modal -->
+<div class="modal-overlay" id="newBmCatModal">
+  <div class="modal">
+    <h3>Nova kategorija web stranica</h3>
+    <label>Naziv kategorije</label>
+    <input type="text" id="newBmCatName" placeholder="npr. Vijesti, Posao, Kupovina..." maxlength="30">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('newBmCatModal')">Odustani</button>
+      <button class="btn btn-blue" onclick="confirmNewBmCat()">Dodaj kategoriju</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename bookmark category modal -->
+<div class="modal-overlay" id="renameBmCatModal">
+  <div class="modal">
+    <h3>Preimenuj kategoriju</h3>
+    <label>Novi naziv</label>
+    <input type="text" id="renameBmCatInput" maxlength="30">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('renameBmCatModal')">Odustani</button>
+      <button class="btn btn-blue" onclick="confirmRenameBmCat()">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit bookmark modal -->
+<div class="modal-overlay" id="editBmModal">
+  <div class="modal">
+    <h3>Uredi web stranicu</h3>
+    <div class="form-grid">
+      <div class="full"><label>Naziv *</label><input type="text" id="editBmName" placeholder="npr. YouTube..."></div>
+      <div class="full"><label>URL *</label><input type="url" id="editBmUrl" placeholder="https://..."></div>
+      <div class="full"><label>Napomena</label><textarea id="editBmNote" placeholder="Opis ili napomena..." style="min-height:52px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('editBmModal')">Odustani</button>
+      <button class="btn btn-blue" onclick="confirmEditBm()">Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send to ToDo modal -->
+<div class="modal-overlay" id="sendToTodoModal">
+  <div class="modal">
+    <h3>Dodaj na To Do Listu</h3>
+    <p class="modal-subtitle">Stavka: <strong id="sendItemLabel"></strong></p>
+    <div class="modal-choice">
+      <button class="choice-btn red-choice" onclick="confirmSendToHP()">
+        <span class="choice-icon">🔴</span>
+        <div><div class="choice-label">Hitno — odmah napraviti</div><div class="choice-desc">Dodaje se u listu visokog prioriteta</div></div>
+      </button>
+      <button class="choice-btn purple-choice" onclick="showDatePicker()">
+        <span class="choice-icon">📅</span>
+        <div><div class="choice-label">Tjedni plan — odaberi dan</div><div class="choice-desc">Odaberi datum i stavka se pojavljuje u tjednom planu</div></div>
+      </button>
+    </div>
+    <div id="datepickerRow" style="display:none;">
+      <label>Odaberi datum</label>
+      <input type="date" id="sendDatePicker" style="margin-top:6px;">
+      <div class="modal-actions" style="margin-top:12px;">
+        <button class="btn btn-secondary" onclick="hideDatePicker()">← Natrag</button>
+        <button class="btn btn-purple" onclick="confirmSendToWeek()">Dodaj na tjedni plan</button>
+      </div>
+    </div>
+    <div class="modal-actions" id="sendModalDefaultActions">
+      <button class="btn btn-secondary" onclick="closeModal('sendToTodoModal')">Odustani</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAKUQmnGdNMXEi-FrJK9XJA5p1mbJXxfWU",
+  authDomain: "planner-96d7c.firebaseapp.com",
+  projectId: "planner-96d7c",
+  storageBucket: "planner-96d7c.firebasestorage.app",
+  messagingSenderId: "550192658997",
+  appId: "1:550192658997:web:cb5f171bb765a58b2e8f7c"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+auth.languageCode = 'hr';
+
+let currentUser = null;
+let unsubscribeSnapshot = null;
+let saveTimer = null;
+let isLoadingFromCloud = false;
+
+// ── Expose to window for non-module functions
+window._fbSignInWithGoogle = async () => {
+  document.getElementById('loginStatus').textContent = 'Prijavljujem...';
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    document.getElementById('loginStatus').textContent = 'Greška: ' + e.message;
+  }
+};
+
+window._fbSignOut = async () => {
+  if (!confirm('Odjaviti se?')) return;
+  if (unsubscribeSnapshot) unsubscribeSnapshot();
+  await fbSignOut(auth);
+  location.reload();
+};
+
+// ── Auth state
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    // Update UI
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('userPhoto').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName?.split(' ')[0] || 'Korisnik';
+    document.getElementById('syncBar').style.display = 'flex';
+    setSyncStatus('syncing', 'Učitavam...');
+    // Subscribe to Firestore
+    subscribeToData(user.uid);
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginStatus').textContent = 'Nisi prijavljen.';
+  }
+});
+
+function subscribeToData(uid) {
+  const docRef = doc(db, 'planners', uid);
+  unsubscribeSnapshot = onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data && data.payload) {
+        isLoadingFromCloud = true;
+        try {
+          const loaded = JSON.parse(data.payload);
+          window._loadStateFromCloud(loaded);
+        } catch(e) {
+          console.error('Parse error', e);
+        }
+        isLoadingFromCloud = false;
+      }
+    } else {
+      // No data yet — save current default state
+      window._saveToCloud();
+    }
+    setSyncStatus('synced', 'Sinkronizirano');
+  }, (err) => {
+    console.error('Firestore error', err);
+    setSyncStatus('error', 'Greška sinkronizacije');
+  });
+}
+
+window._saveToCloud = async () => {
+  if (!currentUser || isLoadingFromCloud) return;
+  setSyncStatus('syncing', 'Spremam...');
+  try {
+    const docRef = doc(db, 'planners', currentUser.uid);
+    await setDoc(docRef, {
+      payload: JSON.stringify(window._getState()),
+      updatedAt: serverTimestamp()
+    });
+    setSyncStatus('synced', 'Sinkronizirano');
+  } catch(e) {
+    console.error('Save error', e);
+    setSyncStatus('error', 'Greška pri spremanju');
+  }
+};
+
+// Debounced save — waits 1.5s after last change before saving
+window._scheduleSave = () => {
+  if (isLoadingFromCloud) return;
+  clearTimeout(saveTimer);
+  setSyncStatus('syncing', 'Čekam promjene...');
+  saveTimer = setTimeout(() => window._saveToCloud(), 1500);
+};
+
+function setSyncStatus(type, text) {
+  const bar = document.getElementById('syncBar');
+  const txt = document.getElementById('syncText');
+  bar.className = '';
+  bar.id = 'syncBar';
+  bar.classList.add(type);
+  bar.style.display = 'flex';
+  txt.textContent = text;
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+function getDefaultData(){
+  return{
+    tabs:[
+      {id:'todolist',name:'✅ To Do Lista',type:'todolist'},
+      {id:'kuca',name:'🏠 Kuća',type:'todo'},
+      {id:'alat',name:'🔧 Alat',type:'todo'},
+      {id:'oprema',name:'📦 Oprema',type:'todo'},
+      {id:'posao',name:'💼 Posao',type:'todo'},
+      {id:'bookmarks',name:'🌐 Web stranice',type:'bookmarks'},
+    ],
+    items:{kuca:[],alat:[],oprema:[],posao:[]},
+    bookmarks:[],
+    bookmarkCats:[{id:'bmcat_default',name:'Općenito'}],
+    activeTab:'todolist',
+    highPriority:[],
+    weeklyTasks:{},
+  };
+}
+
+let state = getDefaultData();
+
+// Called by Firebase module when cloud data arrives
+window._loadStateFromCloud = function(data) {
+  state = data;
+  if(!state.items)state.items={};
+  if(!state.bookmarks)state.bookmarks=[];
+  if(!state.highPriority)state.highPriority=[];
+  if(!state.weeklyTasks)state.weeklyTasks={};
+  if(!state.bookmarkCats)state.bookmarkCats=[{id:'bmcat_default',name:'Općenito'}];
+  if(!state.tabs.find(t=>t.id==='todolist'))state.tabs.unshift({id:'todolist',name:'✅ To Do Lista',type:'todolist'});
+  state.tabs.forEach(t=>{if(t.type==='todo'&&!state.items[t.id])state.items[t.id]=[];});
+  render();
+};
+
+window._getState = function(){ return state; };
+
+// Save triggers cloud save (debounced)
+function saveData(){
+  if(window._scheduleSave) window._scheduleSave();
+}
+
+// Auth button wrappers
+window.signInWithGoogle = function(){ if(window._fbSignInWithGoogle) window._fbSignInWithGoogle(); };
+window.signOut = function(){ if(window._fbSignOut) window._fbSignOut(); };
+
+// ══════════════════════════════════════════
+//  UI STATE
+// ══════════════════════════════════════════
+let activeFilter='all', ctxTabId=null, editItemId=null, editItemTabId=null;
+let pendingSendText='', pendingSendTabId='', pendingSendItemId='';
+let viewingWeekKey=null;
+let activeBmCat='bmcat_default';
+let editBmId=null, renameBmCatId=null;
+
+// ══════════════════════════════════════════
+//  DATE HELPERS
+// ══════════════════════════════════════════
+function getMonday(d){d=new Date(d);const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);d.setHours(0,0,0,0);return d;}
+function getWeekKey(d){const mon=getMonday(d);const y=mon.getFullYear(),start=new Date(y,0,1);const week=Math.ceil(((mon-start)/86400000+start.getDay()+1)/7);return`${y}-W${String(week).padStart(2,'0')}`;}
+function formatDateKey(d){return d.toISOString().slice(0,10);}
+function getWeekDays(m){const days=[];for(let i=0;i<7;i++){const d=new Date(m);d.setDate(d.getDate()+i);days.push(d);}return days;}
+function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function isToday(d){return formatDateKey(d)===formatDateKey(today());}
+function isPast(d){return d<today();}
+function weekKeyToMonday(year,week){const simple=new Date(year,0,1+((week-1)*7));const dow=simple.getDay();const w=new Date(simple);if(dow<=4)w.setDate(simple.getDate()-simple.getDay()+1);else w.setDate(simple.getDate()+8-simple.getDay());return w;}
+function mondayFromKey(wk){const[year,week]=wk.split('-W');return weekKeyToMonday(parseInt(year),parseInt(week));}
+function getCurrentWeekKey(){return getWeekKey(today());}
+function ensureWeekExists(wk){if(!state.weeklyTasks[wk])state.weeklyTasks[wk]={};}
+function getActiveWk(){return viewingWeekKey||getCurrentWeekKey();}
+function getActiveMon(){return mondayFromKey(getActiveWk());}
+function isCurrentWeek(){return getActiveWk()===getCurrentWeekKey();}
+const DAY_NAMES=['Ponedjeljak','Utorak','Srijeda','Četvrtak','Petak','Subota','Nedjelja'];
+const MONTH_NAMES=['sij','velj','ožu','tra','svi','lip','srp','kol','ruj','lis','stu','pro'];
+function formatDayLabel(d){return`${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`;}
+function formatWeekRange(m){const sun=new Date(m);sun.setDate(sun.getDate()+6);return`${formatDayLabel(m)} — ${formatDayLabel(sun)} ${sun.getFullYear()}`;}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function render(){renderTabs();renderPanels();}
+function renderTabs(){
+  const bar=document.getElementById('tabsBar');
+  const addBtn=bar.querySelector('.tab-add-btn');
+  bar.querySelectorAll('.tab-btn').forEach(b=>b.remove());
+  state.tabs.forEach(tab=>{
+    const btn=document.createElement('button');
+    let cls='tab-btn'+(tab.id===state.activeTab?' active':'');
+    if(tab.type==='todolist')cls+=' todo-dash-tab';
+    if(tab.type==='bookmarks')cls+=' bookmarks-tab';
+    btn.className=cls;btn.textContent=tab.name;
+    btn.onclick=()=>switchTab(tab.id);
+    btn.oncontextmenu=(e)=>{e.preventDefault();openTabCtx(tab.id,e);};
+    bar.insertBefore(btn,addBtn);
+  });
+}
+function renderPanels(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML='';
+  state.tabs.forEach(tab=>{
+    const panel=document.createElement('div');
+    panel.className='panel'+(tab.id===state.activeTab?' active':'');
+    panel.id='panel_'+tab.id;
+    if(tab.type==='todolist')panel.innerHTML=buildTodoListPanel();
+    else if(tab.type==='bookmarks')panel.innerHTML=buildBookmarksPanel();
+    else panel.innerHTML=buildTodoPanel(tab);
+    main.appendChild(panel);
+  });
+  state.tabs.forEach(tab=>{
+    if(tab.type==='todo')attachTodoEvents(tab.id);
+    else if(tab.type==='bookmarks')attachBookmarkEvents();
+    else if(tab.type==='todolist')attachTodoListEvents();
+  });
+}
+
+// ══════════════════════════════════════════
+//  TODO LIST PANEL
+// ══════════════════════════════════════════
+function buildTodoListPanel(){
+  const wk=getActiveWk(),mon=getActiveMon(),isCurrent=isCurrentWeek();
+  ensureWeekExists(wk);
+  return`
+    <div class="section-header"><h2>✅ To Do <em>Lista</em></h2></div>
+    <div class="high-prio-section">
+      <div class="dash-section-title">🔴 Hitno — Visoki prioritet <span class="badge badge-red">Odmah napraviti</span></div>
+      <div id="hpList">${buildHPList()}</div>
+      <div class="high-prio-add">
+        <input type="text" id="hpInput" placeholder="Dodaj hitnu stavku...">
+        <button class="btn btn-primary btn-sm" onclick="addHP()">Dodaj</button>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="week-section">
+      <div class="dash-section-title" style="margin-bottom:10px;">📅 Tjedni plan <span class="badge badge-purple">${isCurrent?'Ovaj tjedan':'Odabrani tjedan'}</span></div>
+      <div class="week-nav">
+        <div class="week-nav-label">${formatWeekRange(mon)}<small>${isCurrent?'Trenutni tjedan':''}</small></div>
+        <div class="week-nav-btns">
+          <button class="week-nav-btn" onclick="navWeek(-1)">← Prethodni</button>
+          ${!isCurrent?`<button class="week-nav-btn today-btn" onclick="goToCurrentWeek()">Ovaj tjedan</button>`:''}
+          <button class="week-nav-btn" onclick="navWeek(1)">Sljedeći →</button>
+          <input type="date" class="week-picker" id="weekPickerInput" title="Odaberi tjedan" onchange="pickWeekFromDate(this.value)">
+          <button class="week-nav-btn" onclick="toggleHistory()">🕐 Povijest</button>
+        </div>
+      </div>
+      <div class="days-grid" id="daysGrid">${buildDaysGrid(wk,mon,false)}</div>
+    </div>
+    <div class="history-panel" id="historyPanel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="dash-section-title" style="margin:0;">🕐 Prošli tjedni</div>
+        <button class="btn btn-secondary btn-sm" onclick="toggleHistory()">Zatvori ✕</button>
+      </div>
+      <div id="historyContent">${buildHistoryContent()}</div>
+    </div>
+  `;
+}
+function attachTodoListEvents(){
+  const hpInput=document.getElementById('hpInput');
+  if(hpInput)hpInput.addEventListener('keydown',e=>{if(e.key==='Enter')addHP();});
+  const wp=document.getElementById('weekPickerInput');
+  if(wp)wp.value=formatDateKey(today());
+  attachDayInputEvents();
+}
+function attachDayInputEvents(){
+  document.querySelectorAll('.day-add-input').forEach(inp=>{
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){addDayTask(inp.dataset.wk,inp.dataset.dk,inp.value.trim());inp.value='';}
+    });
+  });
+}
+
+// ── WEEK NAV
+function navWeek(dir){const mon=getActiveMon();mon.setDate(mon.getDate()+dir*7);viewingWeekKey=getWeekKey(mon);refreshWeekSection();}
+function goToCurrentWeek(){viewingWeekKey=null;refreshWeekSection();}
+function pickWeekFromDate(v){if(!v)return;viewingWeekKey=getWeekKey(new Date(v));refreshWeekSection();}
+function refreshWeekSection(){
+  const panel=document.getElementById('panel_todolist');
+  if(panel){panel.innerHTML=buildTodoListPanel();attachTodoListEvents();}
+}
+
+// ── HIGH PRIORITY
+function buildHPList(){
+  if(!state.highPriority.length)return`<div class="empty-state" style="padding:14px 0;"><div class="icon">✅</div><p>Nema hitnih stavki!</p></div>`;
+  return state.highPriority.map(item=>`
+    <div class="hp-item">
+      <div class="hp-check ${item.done?'checked':''}" onclick="toggleHP('${item.id}')">${item.done?'✓':''}</div>
+      <div class="hp-body">
+        <div class="hp-text ${item.done?'done':''}">${esc(item.text)}</div>
+        ${item.src?`<div class="hp-src">📌 iz: ${esc(item.src)}</div>`:''}
+      </div>
+      <button class="hp-del" onclick="deleteHP('${item.id}')">✕</button>
+    </div>
+  `).join('');
+}
+function addHP(text,src){
+  const inp=document.getElementById('hpInput');
+  const t=text||(inp?inp.value.trim():'');
+  if(!t)return;
+  state.highPriority.push({id:'hp'+Date.now(),text:t,done:false,src:src||''});
+  saveData();if(inp&&!text)inp.value='';
+  const el=document.getElementById('hpList');if(el)el.innerHTML=buildHPList();
+}
+function toggleHP(id){const item=state.highPriority.find(i=>i.id===id);if(item){item.done=!item.done;saveData();}const el=document.getElementById('hpList');if(el)el.innerHTML=buildHPList();}
+function deleteHP(id){state.highPriority=state.highPriority.filter(i=>i.id!==id);saveData();const el=document.getElementById('hpList');if(el)el.innerHTML=buildHPList();}
+
+// ── DAYS GRID
+function buildDaysGrid(wk,m,readOnly){
+  ensureWeekExists(wk);
+  return getWeekDays(m).map((d,i)=>{
+    const dk=formatDateKey(d),tasks=state.weeklyTasks[wk][dk]||[];
+    const isToday_=isToday(d),isPast_=isPast(d)&&!isToday_,isWeekend_=i>=5;
+    return`<div class="day-card ${isToday_?'today':''} ${isPast_?'past':''} ${isWeekend_&&!isToday_?'weekend':''}">
+      <div class="day-name">${DAY_NAMES[i]}</div>
+      <div class="day-date">${formatDayLabel(d)}</div>
+      <div class="day-items">
+        ${tasks.length?tasks.map(t=>`
+          <div class="day-task">
+            <div class="day-check ${t.done?'checked':''}" onclick="toggleDayTask('${wk}','${dk}','${t.id}')">${t.done?'✓':''}</div>
+            <div class="day-task-text ${t.done?'done':''}">${esc(t.text)}</div>
+            ${t.src?`<span class="day-task-src">${esc(t.src)}</span>`:''}
+            ${!readOnly?`<button class="day-task-del" onclick="deleteDayTask('${wk}','${dk}','${t.id}')">✕</button>`:''}
+          </div>`).join(''):`<div style="font-size:.72rem;color:var(--text3);padding:3px 0;">—</div>`}
+      </div>
+      ${!readOnly?`<div class="day-add-row">
+        <input class="day-add-input" data-dk="${dk}" data-wk="${wk}" placeholder="Dodaj...">
+        <button class="day-add-btn" onclick="addDayTaskFromBtn('${wk}','${dk}')">+</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+function addDayTask(wk,dk,text,src){if(!text)return;ensureWeekExists(wk);if(!state.weeklyTasks[wk][dk])state.weeklyTasks[wk][dk]=[];state.weeklyTasks[wk][dk].push({id:'dt'+Date.now(),text,done:false,src:src||''});saveData();refreshDaysGrid();}
+function addDayTaskFromBtn(wk,dk){const inp=document.querySelector(`.day-add-input[data-dk="${dk}"][data-wk="${wk}"]`);if(!inp)return;addDayTask(wk,dk,inp.value.trim());inp.value='';}
+function toggleDayTask(wk,dk,id){ensureWeekExists(wk);const t=(state.weeklyTasks[wk][dk]||[]).find(x=>x.id===id);if(t){t.done=!t.done;saveData();}refreshDaysGrid();}
+function deleteDayTask(wk,dk,id){ensureWeekExists(wk);if(state.weeklyTasks[wk][dk])state.weeklyTasks[wk][dk]=state.weeklyTasks[wk][dk].filter(x=>x.id!==id);saveData();refreshDaysGrid();}
+function refreshDaysGrid(){
+  const wk=getActiveWk(),mon=getActiveMon();
+  const grid=document.getElementById('daysGrid');
+  if(grid){grid.innerHTML=buildDaysGrid(wk,mon,false);attachDayInputEvents();}
+  const hp=document.getElementById('historyPanel');
+  if(hp&&hp.classList.contains('open')){const hc=document.getElementById('historyContent');if(hc)hc.innerHTML=buildHistoryContent();}
+}
+
+// ── HISTORY
+function buildHistoryContent(){
+  const cur=getCurrentWeekKey();
+  const past=Object.keys(state.weeklyTasks).filter(wk=>wk!==cur).sort((a,b)=>b.localeCompare(a));
+  if(!past.length)return`<div class="empty-state"><div class="icon">📭</div><p>Nema prošlih tjedana.</p></div>`;
+  return past.map(wk=>{
+    const mon=mondayFromKey(wk),days=getWeekDays(mon);
+    return`<div class="history-week">
+      <div class="history-week-title">
+        <span>📅 ${formatWeekRange(mon)}</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="jumpToWeek('${wk}')">📌 Prikaži</button>
+          <button class="btn btn-secondary btn-sm" onclick="deleteHistoryWeek('${wk}')">🗑️ Obriši</button>
+        </div>
+      </div>
+      <div class="history-days-grid">
+        ${days.map((d,i)=>{const dk=formatDateKey(d);const tasks=(state.weeklyTasks[wk]&&state.weeklyTasks[wk][dk])||[];
+          return`<div class="h-day"><div class="h-day-name">${DAY_NAMES[i]}</div><div class="h-day-date">${formatDayLabel(d)}</div>
+          ${tasks.length?tasks.map(t=>`<div class="h-task ${t.done?'done':''}"><span class="h-task-check">${t.done?'✅':'⬜'}</span><span>${esc(t.text)}</span></div>`).join(''):`<div style="font-size:.7rem;color:var(--text3);">—</div>`}
+          </div>`;}).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleHistory(){const p=document.getElementById('historyPanel');if(!p)return;p.classList.toggle('open');if(p.classList.contains('open')){const hc=document.getElementById('historyContent');if(hc)hc.innerHTML=buildHistoryContent();p.scrollIntoView({behavior:'smooth',block:'start'});}}
+function jumpToWeek(wk){viewingWeekKey=wk;const p=document.getElementById('historyPanel');if(p)p.classList.remove('open');refreshWeekSection();}
+function deleteHistoryWeek(wk){if(!confirm('Obrisati ovaj tjedan?'))return;delete state.weeklyTasks[wk];saveData();const hc=document.getElementById('historyContent');if(hc)hc.innerHTML=buildHistoryContent();}
+
+// ── SEND TO TODO
+function openSendToTodo(tabId,itemId){
+  const item=state.items[tabId].find(i=>i.id===itemId);if(!item)return;
+  pendingSendText=item.desc;pendingSendTabId=tabId;pendingSendItemId=itemId;
+  document.getElementById('sendItemLabel').textContent='"'+item.desc+'"';
+  hideDatePicker();openModal('sendToTodoModal');
+}
+function confirmSendToHP(){
+  const tabName=state.tabs.find(t=>t.id===pendingSendTabId)?.name||pendingSendTabId;
+  addHP(pendingSendText,tabName);closeModal('sendToTodoModal');showToast('🔴 Dodano na hitnu listu!');
+}
+function showDatePicker(){document.getElementById('datepickerRow').style.display='block';document.getElementById('sendModalDefaultActions').style.display='none';const t=new Date(today());t.setDate(t.getDate()+1);document.getElementById('sendDatePicker').value=formatDateKey(t);document.getElementById('sendDatePicker').min=formatDateKey(today());}
+function hideDatePicker(){document.getElementById('datepickerRow').style.display='none';document.getElementById('sendModalDefaultActions').style.display='flex';}
+function confirmSendToWeek(){
+  const v=document.getElementById('sendDatePicker').value;if(!v){alert('Odaberi datum!');return;}
+  const d=new Date(v+'T00:00:00'),wk=getWeekKey(d),dk=formatDateKey(d);
+  const tabName=state.tabs.find(t=>t.id===pendingSendTabId)?.name||pendingSendTabId;
+  addDayTask(wk,dk,pendingSendText,tabName);closeModal('sendToTodoModal');
+  const dayName=DAY_NAMES[d.getDay()===0?6:d.getDay()-1];
+  showToast(`📅 Dodano na ${dayName}, ${formatDayLabel(d)}!`);
+}
+function showToast(msg){let t=document.getElementById('toastEl');if(!t){t=document.createElement('div');t.id='toastEl';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1510;color:#fff;padding:10px 22px;border-radius:8px;font-size:.88rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:opacity .3s;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._to);t._to=setTimeout(()=>{t.style.opacity='0';},2500);}
+
+// ══════════════════════════════════════════
+//  REGULAR TODO PANEL
+// ══════════════════════════════════════════
+function buildTodoPanel(tab){
+  const items=state.items[tab.id]||[];const done=items.filter(i=>i.done).length;
+  return`
+    <div class="section-header"><h2>${tab.name} <em>lista</em></h2></div>
+    <div class="stats-bar">
+      <div class="stat">Ukupno: <strong>${items.length}</strong></div>
+      <div class="stat">Na čekanju: <strong>${items.length-done}</strong></div>
+      <div class="stat">Završeno: <strong>${done}</strong></div>
+    </div>
+    <div class="add-form">
+      <h3>Dodaj novu stavku</h3>
+      <div class="form-grid">
+        <div class="full"><label>Opis *</label><input type="text" id="add_desc_${tab.id}" placeholder="Opis zadatka ili kupovine..."></div>
+        <div><label>Link</label><input type="url" id="add_link_${tab.id}" placeholder="https://..."></div>
+        <div><label>Prioritet</label>
+          <select id="add_priority_${tab.id}">
+            <option value="low">Nizak</option><option value="medium" selected>Srednji</option><option value="high">Visok</option>
+          </select>
+        </div>
+        <div class="full"><label>Dodatne informacije</label><textarea id="add_info_${tab.id}" placeholder="Napomene, cijena, detalji..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="clearAddForm('${tab.id}')">Obriši</button>
+        <button class="btn btn-primary" onclick="addItem('${tab.id}')">➕ Dodaj stavku</button>
+      </div>
+    </div>
+    <div class="filters">
+      <span style="font-size:.8rem;color:var(--text3);font-weight:600;margin-right:4px">Prikaži:</span>
+      <button class="filter-btn ${activeFilter==='all'?'active':''}" onclick="setFilter('all','${tab.id}')">Sve</button>
+      <button class="filter-btn ${activeFilter==='pending'?'active':''}" onclick="setFilter('pending','${tab.id}')">Na čekanju</button>
+      <button class="filter-btn done-filter ${activeFilter==='done'?'active':''}" onclick="setFilter('done','${tab.id}')">Završeno</button>
+    </div>
+    <div class="items-list" id="list_${tab.id}">${buildItemsList(tab.id)}</div>
+  `;
+}
+function buildItemsList(tabId){
+  const all=state.items[tabId]||[];
+  const items=all.filter(i=>{if(activeFilter==='pending')return !i.done;if(activeFilter==='done')return i.done;return true;})
+    .sort((a,b)=>{const p={high:0,medium:1,low:2};if(!a.done&&b.done)return -1;if(a.done&&!b.done)return 1;return p[a.priority]-p[b.priority];});
+  if(!items.length)return`<div class="empty-state"><div class="icon">📋</div><p>Nema stavki. Dodaj prvu gore!</p></div>`;
+  return items.map(item=>`
+    <div class="item-card ${item.done?'done':''}" id="card_${item.id}">
+      <div class="item-top">
+        <div class="item-check ${item.done?'checked':''}" onclick="toggleDone('${tabId}','${item.id}')">${item.done?'✓':''}</div>
+        <div class="item-content">
+          <div class="item-title">${esc(item.desc)}</div>
+          ${item.info?`<div class="item-desc">${esc(item.info)}</div>`:''}
+          <div class="item-meta">
+            ${item.link?`<div class="item-link"><a href="${esc(item.link)}" target="_blank">🔗 ${esc(tryDomain(item.link))}</a></div>`:''}
+            <span class="item-priority priority-${item.priority}">${priLabel(item.priority)}</span>
+            <span class="item-info-tag">📅 ${new Date(item.created).toLocaleDateString('hr-HR')}</span>
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="send-btn send-btn-red" onclick="openSendToTodo('${tabId}','${item.id}')">📌 To Do</button>
+          <button class="icon-btn" onclick="openEditItem('${tabId}','${item.id}')">✏️</button>
+          <button class="icon-btn del" onclick="deleteItem('${tabId}','${item.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function attachTodoEvents(tabId){const el=document.getElementById('add_desc_'+tabId);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')addItem(tabId);});}
+function addItem(tabId){
+  const desc=document.getElementById('add_desc_'+tabId).value.trim();if(!desc){alert('Opis je obavezan!');return;}
+  if(!state.items[tabId])state.items[tabId]=[];
+  state.items[tabId].push({id:'i'+Date.now(),desc,link:document.getElementById('add_link_'+tabId).value.trim(),info:document.getElementById('add_info_'+tabId).value.trim(),priority:document.getElementById('add_priority_'+tabId).value,done:false,created:Date.now()});
+  saveData();clearAddForm(tabId);refreshList(tabId);updateStats(tabId);
+}
+function clearAddForm(tabId){['add_desc_','add_link_','add_info_'].forEach(p=>{const el=document.getElementById(p+tabId);if(el)el.value='';});const p=document.getElementById('add_priority_'+tabId);if(p)p.value='medium';}
+function toggleDone(tabId,itemId){const item=state.items[tabId].find(i=>i.id===itemId);if(item){item.done=!item.done;saveData();refreshList(tabId);updateStats(tabId);}}
+function deleteItem(tabId,itemId){if(!confirm('Obrisati stavku?'))return;state.items[tabId]=state.items[tabId].filter(i=>i.id!==itemId);saveData();refreshList(tabId);updateStats(tabId);}
+function openEditItem(tabId,itemId){
+  const item=state.items[tabId].find(i=>i.id===itemId);if(!item)return;
+  editItemId=itemId;editItemTabId=tabId;
+  document.getElementById('editDesc').value=item.desc;document.getElementById('editLink').value=item.link||'';
+  document.getElementById('editInfo').value=item.info||'';document.getElementById('editPriority').value=item.priority;
+  openModal('editItemModal');
+}
+function confirmEditItem(){
+  const desc=document.getElementById('editDesc').value.trim();if(!desc){alert('Opis je obavezan!');return;}
+  const item=state.items[editItemTabId].find(i=>i.id===editItemId);
+  if(item){item.desc=desc;item.link=document.getElementById('editLink').value.trim();item.info=document.getElementById('editInfo').value.trim();item.priority=document.getElementById('editPriority').value;saveData();refreshList(editItemTabId);updateStats(editItemTabId);}
+  closeModal('editItemModal');
+}
+function setFilter(f,tabId){activeFilter=f;refreshList(tabId);document.querySelectorAll('.filter-btn').forEach(b=>{b.classList.toggle('active',(f==='all'&&b.textContent.includes('Sve'))||(f==='pending'&&b.textContent.includes('čekanju'))||(f==='done'&&b.textContent.includes('Završeno')));});}
+function refreshList(tabId){const el=document.getElementById('list_'+tabId);if(el)el.innerHTML=buildItemsList(tabId);}
+function updateStats(tabId){const items=state.items[tabId]||[];const done=items.filter(i=>i.done).length;const bar=document.querySelector(`#panel_${tabId} .stats-bar`);if(bar)bar.innerHTML=`<div class="stat">Ukupno: <strong>${items.length}</strong></div><div class="stat">Na čekanju: <strong>${items.length-done}</strong></div><div class="stat">Završeno: <strong>${done}</strong></div>`;}
+
+// ══════════════════════════════════════════
+//  BOOKMARKS
+// ══════════════════════════════════════════
+function buildBookmarksPanel(){
+  const cats=state.bookmarkCats||[];
+  if(!cats.find(c=>c.id===activeBmCat))activeBmCat=cats[0]?.id||'';
+  return`
+    <div class="section-header"><h2>🌐 Web <em>stranice</em></h2></div>
+    <div class="bm-cats-bar" id="bmCatsBar">
+      ${cats.map(c=>`<button class="bm-cat-tab${c.id===activeBmCat?' active':''}" onclick="switchBmCat('${c.id}')">${esc(c.name)}</button>`).join('')}
+      <button class="bm-cat-add-btn" onclick="openNewBmCatModal()" title="Nova kategorija">＋</button>
+    </div>
+    <div id="bmPanelContent">${buildBmCatPanel(activeBmCat)}</div>
+  `;
+}
+function buildBmCatPanel(catId){
+  const cat=state.bookmarkCats.find(c=>c.id===catId);if(!cat)return'';
+  const bms=(state.bookmarks||[]).filter(b=>b.catId===catId);
+  return`<div class="bm-panel active">
+    <div class="bm-cat-header">
+      <div class="bm-cat-title">📂 <em>${esc(cat.name)}</em> — ${bms.length} stranica</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="openRenameBmCat('${catId}')">✏️ Preimenuj</button>
+        ${state.bookmarkCats.length>1?`<button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="deleteBmCat('${catId}')">🗑️ Obriši</button>`:''}
+      </div>
+    </div>
+    <div class="bm-add-form">
+      <h3>Dodaj web stranicu u "${esc(cat.name)}"</h3>
+      <div class="form-grid">
+        <div><label>Naziv *</label><input type="text" id="bm_name" placeholder="npr. YouTube..."></div>
+        <div><label>URL *</label><input type="url" id="bm_url" placeholder="https://..."></div>
+        <div class="full"><label>Napomena</label><textarea id="bm_note" placeholder="Kratki opis..." style="min-height:48px"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="clearBmForm()">Obriši</button>
+        <button class="btn btn-blue" onclick="addBookmark('${catId}')">➕ Dodaj stranicu</button>
+      </div>
+    </div>
+    <div class="bookmark-grid" id="bookmarkGrid">${buildBookmarkGrid(catId)}</div>
+  </div>`;
+}
+function buildBookmarkGrid(catId){
+  const bms=(state.bookmarks||[]).filter(b=>b.catId===catId);
+  if(!bms.length)return`<div class="empty-state" style="grid-column:1/-1"><div class="icon">🌐</div><p>Nema stranica. Dodaj prvu gore!</p></div>`;
+  return bms.map(bm=>{const domain=tryDomain(bm.url);return`<div class="bookmark-card">
+    <div class="bookmark-top">
+      <div class="bookmark-favicon"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32" onerror="this.style.display='none';this.parentNode.textContent='🌐'" alt=""></div>
+      <div class="bookmark-info"><div class="bookmark-name">${esc(bm.name)}</div><div class="bookmark-url">${esc(domain)}</div></div>
+    </div>
+    ${bm.note?`<div class="bookmark-note">${esc(bm.note)}</div>`:''}
+    <div class="bookmark-actions">
+      <button class="icon-btn" onclick="openEditBm('${bm.id}')" title="Uredi">✏️</button>
+      <button class="icon-btn del" onclick="deleteBookmark('${bm.id}')" title="Obriši">🗑️</button>
+      <a class="bookmark-visit" href="${esc(bm.url)}" target="_blank">Otvori →</a>
+    </div>
+  </div>`;}).join('');
+}
+function switchBmCat(catId){activeBmCat=catId;document.querySelectorAll('.bm-cat-tab').forEach(b=>{b.classList.toggle('active',b.textContent===state.bookmarkCats.find(c=>c.id===catId)?.name);});const content=document.getElementById('bmPanelContent');if(content){content.innerHTML=buildBmCatPanel(catId);attachBookmarkEvents();}}
+function attachBookmarkEvents(){const el=document.getElementById('bm_name');if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')addBookmark(activeBmCat);});}
+function addBookmark(catId){
+  const name=document.getElementById('bm_name')?.value.trim();const url=document.getElementById('bm_url')?.value.trim();
+  if(!name||!url){alert('Naziv i URL su obavezni!');return;}
+  const finalUrl=url.startsWith('http')?url:'https://'+url;
+  if(!state.bookmarks)state.bookmarks=[];
+  state.bookmarks.push({id:'b'+Date.now(),catId,name,url:finalUrl,note:document.getElementById('bm_note')?.value.trim()||''});
+  saveData();clearBmForm();const grid=document.getElementById('bookmarkGrid');if(grid)grid.innerHTML=buildBookmarkGrid(catId);
+  const hdr=document.querySelector('.bm-cat-title');const bms=(state.bookmarks||[]).filter(b=>b.catId===catId);if(hdr){const cat=state.bookmarkCats.find(c=>c.id===catId);if(cat)hdr.innerHTML=`📂 <em>${esc(cat.name)}</em> — ${bms.length} stranica`;}
+}
+function clearBmForm(){['bm_name','bm_url','bm_note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+function deleteBookmark(bmId){if(!confirm('Obrisati web stranicu?'))return;state.bookmarks=state.bookmarks.filter(b=>b.id!==bmId);saveData();const grid=document.getElementById('bookmarkGrid');if(grid)grid.innerHTML=buildBookmarkGrid(activeBmCat);}
+function openEditBm(bmId){const bm=state.bookmarks.find(b=>b.id===bmId);if(!bm)return;editBmId=bmId;document.getElementById('editBmName').value=bm.name;document.getElementById('editBmUrl').value=bm.url;document.getElementById('editBmNote').value=bm.note||'';openModal('editBmModal');}
+function confirmEditBm(){
+  const name=document.getElementById('editBmName').value.trim();const url=document.getElementById('editBmUrl').value.trim();
+  if(!name||!url){alert('Naziv i URL su obavezni!');return;}
+  const bm=state.bookmarks.find(b=>b.id===editBmId);
+  if(bm){bm.name=name;bm.url=url.startsWith('http')?url:'https://'+url;bm.note=document.getElementById('editBmNote').value.trim();saveData();const grid=document.getElementById('bookmarkGrid');if(grid)grid.innerHTML=buildBookmarkGrid(activeBmCat);}
+  closeModal('editBmModal');
+}
+function openNewBmCatModal(){document.getElementById('newBmCatName').value='';openModal('newBmCatModal');setTimeout(()=>document.getElementById('newBmCatName').focus(),100);}
+function confirmNewBmCat(){
+  const name=document.getElementById('newBmCatName').value.trim();if(!name){alert('Unesi naziv kategorije!');return;}
+  if(!state.bookmarkCats)state.bookmarkCats=[];const newCat={id:'bmcat_'+Date.now(),name};state.bookmarkCats.push(newCat);saveData();activeBmCat=newCat.id;closeModal('newBmCatModal');
+  const panel=document.getElementById('panel_bookmarks');if(panel){panel.innerHTML=buildBookmarksPanel();attachBookmarkEvents();}
+}
+function openRenameBmCat(catId){renameBmCatId=catId;const cat=state.bookmarkCats.find(c=>c.id===catId);document.getElementById('renameBmCatInput').value=cat?.name||'';openModal('renameBmCatModal');setTimeout(()=>document.getElementById('renameBmCatInput').focus(),100);}
+function confirmRenameBmCat(){const name=document.getElementById('renameBmCatInput').value.trim();if(!name)return;const cat=state.bookmarkCats.find(c=>c.id===renameBmCatId);if(cat){cat.name=name;saveData();}closeModal('renameBmCatModal');const panel=document.getElementById('panel_bookmarks');if(panel){panel.innerHTML=buildBookmarksPanel();attachBookmarkEvents();}}
+function deleteBmCat(catId){const cat=state.bookmarkCats.find(c=>c.id===catId);const count=(state.bookmarks||[]).filter(b=>b.catId===catId).length;if(!confirm(`Obrisati kategoriju "${cat?.name}"${count>0?` i svih ${count} stranica`:''}?`))return;state.bookmarkCats=state.bookmarkCats.filter(c=>c.id!==catId);state.bookmarks=(state.bookmarks||[]).filter(b=>b.catId!==catId);activeBmCat=state.bookmarkCats[0]?.id||'';saveData();const panel=document.getElementById('panel_bookmarks');if(panel){panel.innerHTML=buildBookmarksPanel();attachBookmarkEvents();}}
+
+// ══════════════════════════════════════════
+//  TAB MANAGEMENT
+// ══════════════════════════════════════════
+function switchTab(tabId){state.activeTab=tabId;activeFilter='all';saveData();render();}
+function openNewTabModal(){document.getElementById('newTabName').value='';openModal('newTabModal');setTimeout(()=>document.getElementById('newTabName').focus(),100);}
+function confirmNewTab(){const name=document.getElementById('newTabName').value.trim();if(!name){alert('Unesi naziv taba!');return;}const id='tab_'+Date.now();state.tabs.push({id,name:pickEmoji(name)+' '+name,type:'todo'});state.items[id]=[];state.activeTab=id;saveData();closeModal('newTabModal');render();}
+function pickEmoji(n){n=n.toLowerCase();if(n.includes('kuc')||n.includes('dom'))return'🏠';if(n.includes('alat'))return'🔧';if(n.includes('posao')||n.includes('rad'))return'💼';if(n.includes('auto'))return'🚗';if(n.includes('bašta')||n.includes('vrt'))return'🌱';if(n.includes('sport')||n.includes('gym'))return'💪';if(n.includes('putov')||n.includes('odmor'))return'✈️';if(n.includes('kupov')||n.includes('shop'))return'🛒';return'📁';}
+function openTabCtx(tabId,e){if(tabId==='bookmarks'||tabId==='todolist')return;ctxTabId=tabId;const ctx=document.getElementById('tabCtx');ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';ctx.classList.add('open');e.stopPropagation();}
+function closeTabCtx(){document.getElementById('tabCtx').classList.remove('open');}
+function renameTabCtx(){closeTabCtx();const tab=state.tabs.find(t=>t.id===ctxTabId);if(!tab)return;document.getElementById('renameTabInput').value=tab.name;openModal('renameTabModal');setTimeout(()=>document.getElementById('renameTabInput').focus(),100);}
+function confirmRenameTab(){const name=document.getElementById('renameTabInput').value.trim();if(!name)return;const tab=state.tabs.find(t=>t.id===ctxTabId);if(tab){tab.name=name;saveData();}closeModal('renameTabModal');render();}
+function deleteTabCtx(){closeTabCtx();const tab=state.tabs.find(t=>t.id===ctxTabId);if(!tab)return;if(!confirm('Obrisati tab "'+tab.name+'" i sve stavke?'))return;state.tabs=state.tabs.filter(t=>t.id!==ctxTabId);delete state.items[ctxTabId];if(state.activeTab===ctxTabId)state.activeTab=state.tabs[0]?.id||'todolist';saveData();render();}
+
+// ══════════════════════════════════════════
+//  MODALS & EVENTS
+// ══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});});
+document.addEventListener('click',()=>closeTabCtx());
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+  if(e.key==='Enter'&&document.getElementById('newTabModal').classList.contains('open'))confirmNewTab();
+  if(e.key==='Enter'&&document.getElementById('renameTabModal').classList.contains('open'))confirmRenameTab();
+  if(e.key==='Enter'&&document.getElementById('newBmCatModal').classList.contains('open'))confirmNewBmCat();
+  if(e.key==='Enter'&&document.getElementById('renameBmCatModal').classList.contains('open'))confirmRenameBmCat();
+});
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function priLabel(p){return{high:'🔴 Visok',medium:'🟡 Srednji',low:'🟢 Nizak'}[p]||p;}
+function tryDomain(url){try{return new URL(url).hostname.replace('www.','');}catch(e){return url;}}
+</script>
+</body>
+</html>
