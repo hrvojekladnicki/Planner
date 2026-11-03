@@ -1,0 +1,49 @@
+rules_version = '2';
+// Planner — Firestore sigurnosna pravila
+// • Vlasnik (uid == ID dokumenta) ima puni pristup svom planneru.
+// • Osobe čiji je (verificirani Google) e-mail u polju sharedWith mogu čitati i mijenjati SAMO sadržaj (payload),
+//   ne mogu mijenjati popis dijeljenja ni vlasnika, niti obrisati planner.
+// • Sve ostalo (bez prijave, tuđi računi, druge kolekcije) je zabranjeno.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /planners/{uid} {
+      function signedIn() { return request.auth != null; }
+      function isOwner() { return signedIn() && request.auth.uid == uid; }
+      function myEmail() {
+        return signedIn() && request.auth.token.get('email', '') != '' && request.auth.token.get('email_verified', false) == true
+          ? request.auth.token.email.lower() : '';
+      }
+      function isMember() {
+        return myEmail() != '' && resource.data.get('sharedWith', []) is list && myEmail() in resource.data.get('sharedWith', []);
+      }
+      function validShape() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['payload', 'updatedAt', 'clientId', 'sharedWith', 'ownerEmail', 'ownerName'])
+          && (!('payload' in d) || (d.payload is string && d.payload.size() < 950000))
+          && (!('sharedWith' in d) || (d.sharedWith is list && d.sharedWith.size() <= 20))
+          && (!('clientId' in d) || (d.clientId is string && d.clientId.size() < 40))
+          && (!('ownerEmail' in d) || d.ownerEmail is string)
+          && (!('ownerName' in d) || d.ownerName is string);
+      }
+
+      allow get: if isOwner() || isMember();
+      // "Planneri podijeljeni sa mnom" — upit mora filtrirati po vlastitom e-mailu
+      allow list: if myEmail() != '' && myEmail() in resource.data.get('sharedWith', []);
+      allow create: if isOwner() && validShape();
+      allow update: if validShape() && (
+        isOwner() ||
+        (isMember()
+          && request.resource.data.get('sharedWith', []) == resource.data.get('sharedWith', [])
+          && request.resource.data.get('ownerEmail', '') == resource.data.get('ownerEmail', '')
+          && request.resource.data.get('ownerName', '') == resource.data.get('ownerName', ''))
+      );
+      allow delete: if isOwner();
+    }
+
+    // Sve ostalo zaključano
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
