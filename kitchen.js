@@ -97,7 +97,11 @@ function drinkById(id){return docById(id)||((d=>d?Object.assign({builtin:true},d
 function drinkReq(d){return(d.ing||[]).filter(i=>i.t!=='h'&&i.k&&!i.opt);}
 function drinkMissing(d){const bar=dm().bar;return drinkReq(d).filter(i=>!bar[i.k]);}
 function barCount(){return Object.values(dm().bar).filter(Boolean).length;}
+// fotografije izrezane s postera "Kućna koktel kuharica" (img/drinks/<id>.jpg) + horizontalni fokus kadra
+const POSTER_IMG={'aperol-spritz':50,'pink-gin-tonic':50,'french-75':50,'cosmopolitan':45,'mojito':55,'moscow-mule':55,'whiskey-sour':30,'espresso-martini':55,'daiquiri':55,'negroni':35,'gin-fizz':72,
+  'kuhano-vino':75,'hot-aperol':62,'irish-coffee':68,'grog':80,'dumbir-limun':55,'zimski-vocni':65,'hot-toddy':80};
 function drinkArt(d,big){const m=dm();const ph=m.photo[d.id]||d.cover;if(ph)return imgTag(ph,{thumb:!big,cls:'dphoto'});
+  if(POSTER_IMG[d.id]!=null&&!m.noweb[d.id])return`<img class="pimg poster" src="img/drinks/${esc(d.id)}.jpg" alt="${esc(d.title)}" loading="lazy" style="object-position:${POSTER_IMG[d.id]}% 50%">`;
   if(typeof WQ!=='undefined'&&WQ[d.id]&&!m.noweb[d.id])return`<div class="wart" data-wiki="${esc(d.id)}">${glassSVG(d,{size:big?'big':''})}</div>`;
   return glassSVG(d,{size:big?'big':''});}
 function drinkCard(d){
@@ -154,11 +158,11 @@ function viewDrink(id){
   <div class="ddetail">
     <section class="card dart" style="--c1:${esc(d.color?d.color[0]:'#f3c470')};--c2:${esc(d.color?d.color[1]:'#b9701e')}">
       ${(m.photo[d.id]||d.cover)?`<button class="dart-photo" data-act="lightbox" data-ids="${esc(m.photo[d.id]||d.cover)}">${drinkArt(d,true)}</button>`:drinkArt(d,true)}
-      ${m.photo[d.id]?creditHTML(m.credit[d.id]):`<div data-wcredit></div>`}
+      ${m.photo[d.id]?creditHTML(m.credit[d.id]):POSTER_IMG[d.id]!=null&&!m.noweb[d.id]?'':`<div data-wcredit></div>`}
       <div class="dart-foot">
         <button class="btn btn-ghost btn-sm" data-act="drinkWebPick" data-id="${esc(d.id)}">${icon('search')}Odaberi fotku</button>
         ${fileBtn('drinkPhoto',d.id,{label:'Svoja fotka',multiple:false,cls:'btn btn-ghost btn-sm'})}
-        ${m.photo[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkPhotoDel" data-id="${esc(d.id)}" title="Ukloni fotku">${icon('trash')}</button>`:WQ[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkNoWeb" data-id="${esc(d.id)}" title="${m.noweb[d.id]?'Prikaži fotku':'Prikaži ilustraciju'}">${m.noweb[d.id]?'📷':'🎨'}</button>`:''}</div>
+        ${m.photo[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkPhotoDel" data-id="${esc(d.id)}" title="Ukloni fotku">${icon('trash')}</button>`:(WQ[d.id]||POSTER_IMG[d.id]!=null)?`<button class="btn btn-ghost btn-sm" data-act="drinkNoWeb" data-id="${esc(d.id)}" title="${m.noweb[d.id]?'Prikaži fotku':'Prikaži ilustraciju'}">${m.noweb[d.id]?'📷':'🎨'}</button>`:''}</div>
     </section>
     <div class="dinfo">
       <div class="facts">
