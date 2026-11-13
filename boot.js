@@ -31,18 +31,20 @@ function sectionsNav(r){
     ${nav('#/diy',r.v==='diy'&&!r.id,'🔨','DIY',act?`${act} u tijeku`:'')}
     ${diyOpen||true?`<div class="nav-sub">${diyCats().map(c=>{const n=projects().filter(p=>p.cat===c.id&&p.status!=='done').length;
       return nav('#/diy/c/'+encodeURIComponent(c.id),(r.id==='c'&&r.sub===c.id)||(curProj&&curProj.cat===c.id),c.emoji,c.name,n||'');}).join('')}</div>`:''}
+    ${(()=>{const t0=localISO(today());const up=trips().filter(t=>t.status!=='idea'&&t.status!=='done'&&(!t.to||t.to>=t0)).sort((a,b)=>(a.from||'9').localeCompare(b.from||'9'));
+      return nav('#/izleti',r.v==='izleti'&&!r.id,'✈️','Izleti i putovanja',up.length||'')+(up.length?`<div class="nav-sub">${up.slice(0,4).map(t=>nav('#/izleti/'+encodeURIComponent(t.id),r.v==='izleti'&&r.id===t.id,esc(t.emoji||'🧳'),t.title||'Izlet','')).join('')}</div>`:'');})()}
     ${nav('#/kids',r.v==='kids'&&!r.id,'🧒','Kids','')}
     ${kids().length?`<div class="nav-sub">${kids().map(k=>nav('#/kids/'+encodeURIComponent(k.id),r.v==='kids'&&r.id===k.id,esc(k.emoji||'🧒'),k.name||'Dijete','')).join('')}</div>`:''}`;
 }
 ACT.more=()=>openSheet({title:'Sve sekcije',side:true,body:`<div class="tiles">
-  ${[['#/kuharica','🍳','Kuharica',`${docsOf('recipe').length} ${plural(docsOf('recipe').length,'recept','recepta','recepata')}`],['#/kokteli','🍸','Kokteli i napitci',`${allDrinks().length} recepata`],['#/diy','🔨','DIY projekti',`${projects().filter(p=>p.status==='progress').length} u tijeku`],['#/kids','🧒','Kids',kids().map(k=>k.name).join(', ')||'raspored sati'],['#/notes','📝','Notes',`${state.notes.length} bilješki`],['#/web','🌐','Web stranice',`${state.bookmarks.length}`],['#/history','🕘','Povijest','prošli tjedni']]
+  ${[['#/kuharica','🍳','Kuharica',`${docsOf('recipe').length} ${plural(docsOf('recipe').length,'recept','recepta','recepata')}`],['#/kokteli','🍸','Kokteli i napitci',`${allDrinks().length} recepata`],['#/diy','🔨','DIY projekti',`${projects().filter(p=>p.status==='progress').length} u tijeku`],['#/izleti','✈️','Izleti i putovanja',`${trips().filter(t=>t.status!=='idea'&&t.status!=='done').length} planirano`],['#/kids','🧒','Kids',kids().map(k=>k.name).join(', ')||'raspored sati'],['#/notes','📝','Notes',`${state.notes.length} bilješki`],['#/web','🌐','Web stranice',`${state.bookmarks.length}`],['#/history','🕘','Povijest','prošli tjedni']]
     .map(([h,e,l,s])=>`<a class="tile" href="${h}" data-close><span>${e}</span><b>${esc(l)}</b><small>${esc(s)}</small></a>`).join('')}</div>
   <div class="sheet-list" style="margin-top:6px">${diyCats().map(c=>`<a href="#/diy/c/${encodeURIComponent(c.id)}" data-close><span class="emo">${esc(c.emoji)}</span>DIY · ${esc(c.name)}</a>`).join('')}</div>`,
   actions:[{label:icon('gear')+'Postavke',cls:'btn-ghost',fn:()=>{closeSheet();openSettings();}}]});
 
 /* ───────── DASHBOARD dodaci ───────── */
 function dashExtra(){
-  const kc=kidsDashCard();
+  const kc=kidsDashCard()+tripsDashCard();
   const prog=projects().filter(p=>p.status==='progress').sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,3);
   const diy=prog.length?`<section class="card"><div class="card-head"><h2>🔨 DIY u tijeku</h2><span class="spacer"></span><a class="link-btn" href="#/diy">Svi ${icon('arrowR')}</a></div>
     <div class="card-body dash-proj">${prog.map(p=>{const s=pStats(p);const pct=s.steps?Math.round(s.stepsDone/s.steps*100):0;const nx=(p.steps||[]).find(x=>!x.d&&(x.x||'').trim());

@@ -55,6 +55,21 @@ Nova sekcija u bočnom izborniku (na mobitelu: **Kids** i **Više** u donjoj tra
   - Izvanškolske aktivnosti i **važni datumi**: testovi, zadaće, izleti, “nema nastave”. Datum može dodati i podsjetnik u tjedni plan.
   - Na **Dashboardu** je kartica “Djeca danas” s podacima *U školi 08:00 – 12:35*, trenutnim satom i nadolazećim testovima.
 
+### ✈️ Izleti i putovanja
+- Svaki izlet ima datume **od–do**, **odredište** i **smještaj**. Oba su linkana na Google Maps (karta i navigacija).
+- **Plan po danima** je izrađen po uzoru na Špik trip planner:
+  - Dani se sami slože iz datuma.
+  - Svaka aktivnost ima trajanje, fiksni početak, mjesto, vožnju, cijenu, link, ocjenu za djecu i oznaku "provjereno". Satnica se računa sama.
+  - Planner upozorava na više od 2 h vani bez pauze i na kasni završetak dana.
+  - Za svaki dan postoje način ☔ "loše vrijeme" i link na **rutu dana** u Google Maps.
+  - Postoji i **banka ideja**, a kartice se povlače između dana.
+- **Prijedlozi za izlete** su brze ideje s mjestom, linkom i opisom. Iz njih kasnije napraviš pravi izlet.
+- **Pakiranje** po osobama ili grupama, s predlošcima (Odrasli, Djeca, Zima, More, Auto) i kopiranjem iz drugog izleta.
+- **Linkovi po kategorijama** (smještaj, rezervacije, aktivnosti, hrana, prijevoz, vrijeme), uz brze linkove: Booking, TripAdvisor, yr.no i restorani.
+- **Troškovi** (plaćeno / za platiti / budžet), **važne informacije** (check-in, broj rezervacije…), slike i bilješke.
+- Izlet se može dodati u Google Calendar i u tjedni plan (uz podsjetnik za pakiranje dan prije), a plan se može kopirati kao tekst.
+- **Uvoz**: plan kopiran iz trip-planner artifacta (⋯ → Copy plan). Gotov je uvoz "Špik zimovanje" (`data/trip-spik.json`).
+
 ### Prave fotografije
 - Svaki napitak automatski dobije pravu fotografiju s Wikipedije / Wikimedia Commonsa. Fotke su pod slobodnom licencom, a izvor i autor se prikazuju ispod fotke.
 - **Odaberi fotku** otvara pretragu Commonsa. Odabrana fotka se preuzme, smanji i spremi u tvoj Planner, pa radi i offline. Isti gumb postoji u Kuharici (**Pronađi pravu fotku**).

@@ -336,7 +336,7 @@ function renderShell(r){
     <button data-act="lists" class="${isTab?'on':''}">${icon('list')}Liste</button>
     <a href="#/notes" class="${r.v==='notes'||r.v==='note'?'on':''}">${icon('note')}Notes</a>
     <a href="#/kids" class="${r.v==='kids'?'on':''}">${icon('kids')}Kids</a>
-    <button data-act="more" class="${['history','web','kuharica','kokteli','diy'].includes(r.v)?'on':''}">${icon('grid')}Više</button>`;
+    <button data-act="more" class="${['history','web','kuharica','kokteli','diy','izleti'].includes(r.v)?'on':''}">${icon('grid')}Više</button>`;
   paintSync();
 }
 let syncState={type:'syncing',text:'Učitavam…'};
