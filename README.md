@@ -55,6 +55,11 @@ Nova sekcija u bočnom izborniku (na mobitelu: **Kids** i **Više** u donjoj tra
   - Izvanškolske aktivnosti i **važni datumi**: testovi, zadaće, izleti, “nema nastave”. Datum može dodati i podsjetnik u tjedni plan.
   - Na **Dashboardu** je kartica “Djeca danas” s podacima *U školi 08:00 – 12:35*, trenutnim satom i nadolazećim testovima.
 
+### Prave fotografije
+- Svaki napitak automatski dobije pravu fotografiju s Wikipedije / Wikimedia Commonsa. Fotke su pod slobodnom licencom, a izvor i autor se prikazuju ispod fotke.
+- **Odaberi fotku** otvara pretragu Commonsa. Odabrana fotka se preuzme, smanji i spremi u tvoj Planner, pa radi i offline. Isti gumb postoji u Kuharici (**Pronađi pravu fotku**).
+- Uvijek možeš staviti **svoju fotku** ili se vratiti na ilustraciju (🎨).
+
 ### Pohrana (skalabilno)
 - Recepti, DIY projekti i vlastiti napici spremaju se kao **zasebni dokumenti** (`planners/{uid}/docs/{id}`), pa više ne vrijedi limit od 1 MB za cijeli planner.
 - **Slike** se u pregledniku smanje (≈200–500 KB plus sličica) i spremaju u `planners/{uid}/blobs/{id}`. Ovo radi na besplatnom Firebase planu, bez Storagea.

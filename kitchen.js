@@ -59,7 +59,7 @@ function glassSVG(d,{size=''}={}){
 const KUI={rq:'',rcat:'',rsort:lsGet('planner.rsort','recent'),rfav:false,dtab:lsGet('planner.dtab','all'),dsp:'',dq:'',dcan:false};
 const COOK={};          // ephemeral: id -> {serv, ing:Set, st:Set, unit}
 function cookSt(id,def){return COOK[id]||(COOK[id]={serv:def||1,ing:new Set(),st:new Set(),unit:'ml'});}
-function dm(){const s=state.drinks||(state.drinks={});['fav','rate','note','photo','bar','made'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={};});return s;}
+function dm(){const s=state.drinks||(state.drinks={});['fav','rate','note','photo','bar','made','credit','noweb'].forEach(k=>{if(!s[k]||typeof s[k]!=='object')s[k]={};});return s;}
 function hueOf(s){let h=0;for(const c of String(s||''))h=(h*31+c.charCodeAt(0))%360;return h;}
 function stepsOf(d){return(d.steps||[]).map(s=>typeof s==='string'?s:(s&&s.x)||'').filter(x=>x.trim());}
 function timersIn(text){const out=[];const re=/(\d+)(?:\s*[-–]\s*(\d+))?\s*(min(?:ut[aei]?)?|sat[ai]?|h|sek(?:und[ei]?)?|s)\b/gi;let m;
@@ -97,7 +97,9 @@ function drinkById(id){return docById(id)||((d=>d?Object.assign({builtin:true},d
 function drinkReq(d){return(d.ing||[]).filter(i=>i.t!=='h'&&i.k&&!i.opt);}
 function drinkMissing(d){const bar=dm().bar;return drinkReq(d).filter(i=>!bar[i.k]);}
 function barCount(){return Object.values(dm().bar).filter(Boolean).length;}
-function drinkArt(d,big){const ph=dm().photo[d.id]||d.cover;return ph?imgTag(ph,{thumb:!big,cls:'dphoto'}):glassSVG(d,{size:big?'big':''});}
+function drinkArt(d,big){const m=dm();const ph=m.photo[d.id]||d.cover;if(ph)return imgTag(ph,{thumb:!big,cls:'dphoto'});
+  if(typeof WQ!=='undefined'&&WQ[d.id]&&!m.noweb[d.id])return`<div class="wart" data-wiki="${esc(d.id)}">${glassSVG(d,{size:big?'big':''})}</div>`;
+  return glassSVG(d,{size:big?'big':''});}
 function drinkCard(d){
   const m=dm();const fav=!!m.fav[d.id];const bc=barCount();const miss=bc?drinkMissing(d):null;
   return`<a class="dcard" href="#/kokteli/${encodeURIComponent(d.id)}" style="--c1:${esc(d.color?d.color[0]:'#f3c470')};--c2:${esc(d.color?d.color[1]:'#b9701e')}">
@@ -152,8 +154,11 @@ function viewDrink(id){
   <div class="ddetail">
     <section class="card dart" style="--c1:${esc(d.color?d.color[0]:'#f3c470')};--c2:${esc(d.color?d.color[1]:'#b9701e')}">
       ${(m.photo[d.id]||d.cover)?`<button class="dart-photo" data-act="lightbox" data-ids="${esc(m.photo[d.id]||d.cover)}">${drinkArt(d,true)}</button>`:drinkArt(d,true)}
-      <div class="dart-foot">${fileBtn('drinkPhoto',d.id,{label:(m.photo[d.id]?'Promijeni fotku':'Dodaj svoju fotku'),multiple:false,cls:'btn btn-ghost btn-sm'})}
-        ${m.photo[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkPhotoDel" data-id="${esc(d.id)}">${icon('trash')}</button>`:''}</div>
+      ${m.photo[d.id]?creditHTML(m.credit[d.id]):`<div data-wcredit></div>`}
+      <div class="dart-foot">
+        <button class="btn btn-ghost btn-sm" data-act="drinkWebPick" data-id="${esc(d.id)}">${icon('search')}Odaberi fotku</button>
+        ${fileBtn('drinkPhoto',d.id,{label:'Svoja fotka',multiple:false,cls:'btn btn-ghost btn-sm'})}
+        ${m.photo[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkPhotoDel" data-id="${esc(d.id)}" title="Ukloni fotku">${icon('trash')}</button>`:WQ[d.id]?`<button class="btn btn-ghost btn-sm" data-act="drinkNoWeb" data-id="${esc(d.id)}" title="${m.noweb[d.id]?'Prikaži fotku':'Prikaži ilustraciju'}">${m.noweb[d.id]?'📷':'🎨'}</button>`:''}</div>
     </section>
     <div class="dinfo">
       <div class="facts">
@@ -283,7 +288,7 @@ function viewRecipe(id){
       <a class="btn btn-outline btn-sm" href="#/kuharica/${encodeURIComponent(r.id)}/edit">${icon('edit')}Uredi</a>
       <button class="ibtn big" data-act="recMenu" data-id="${esc(r.id)}" title="Opcije">${icon('more')}</button></div></div>
   <section class="rhero" style="--h:${hueOf(r.cat||r.title)}">
-    ${r.cover?`<button class="rhero-img" data-act="lightbox" data-ids="${esc(imgs.join(','))}" data-i="0">${imgTag(r.cover,{thumb:false})}</button>`:`<div class="rhero-ph"><span>${esc(r.emoji||'🍽️')}</span>${fileBtn('recCoverUp',r.id,{label:'Dodaj naslovnu sliku',multiple:false,cls:'btn btn-ghost btn-sm'})}</div>`}
+    ${r.cover?`<button class="rhero-img" data-act="lightbox" data-ids="${esc(imgs.join(','))}" data-i="0">${imgTag(r.cover,{thumb:false})}</button>`:`<div class="rhero-ph"><span>${esc(r.emoji||'🍽️')}</span><div class="btn-row" style="margin:0;justify-content:center"><button class="btn btn-ghost btn-sm" data-act="recWebPick" data-id="${esc(r.id)}">${icon('search')}Pronađi pravu fotku</button>${fileBtn('recCoverUp',r.id,{label:'Svoja fotka',multiple:false,cls:'btn btn-ghost btn-sm'})}</div></div>`}
     <div class="facts">
       ${r.cat?`<div><small>Kategorija</small><b>${esc(r.cat)}</b></div>`:''}
       ${r.prep?`<div><small>Priprema</small><b>${esc(fmtMin(r.prep))}</b></div>`:''}
@@ -292,6 +297,7 @@ function viewRecipe(id){
       ${r.diff?`<div><small>Težina</small><b>${esc(DIFF[r.diff]||r.diff)}</b></div>`:''}
     </div>
   </section>
+  ${r.cover&&r.credits&&r.credits[r.cover]?creditHTML(r.credits[r.cover]):''}
   <div class="rate-row">${starsHTML(r.rating,'recRate',r.id)}<span class="made">${r.made?`Skuhano ${r.made}×${r.lastMade?' · zadnji put '+new Date(r.lastMade).toLocaleDateString('hr-HR'):''}`:''}</span>
     ${(r.tags||[]).map(x=>`<span class="pill">#${esc(x)}</span>`).join('')}
     <span class="spacer"></span>
@@ -314,7 +320,7 @@ function viewRecipe(id){
   ${(r.links||[]).length||r.source?`<section class="card"><div class="card-head"><h2>${icon('link')} Linkovi i izvor</h2></div><div class="card-body links-list">
     ${r.source?`<a class="lnk" href="${esc(safeUrl(r.source))}" target="_blank" rel="noopener">${icon('ext')}<span><b>Izvor recepta</b><small>${esc(tryDomain(safeUrl(r.source)))}</small></span></a>`:''}
     ${(r.links||[]).map(l=>`<a class="lnk" href="${esc(safeUrl(l.u))}" target="_blank" rel="noopener">${icon('link')}<span><b>${esc(l.t||tryDomain(safeUrl(l.u)))}</b><small>${esc(tryDomain(safeUrl(l.u)))}</small></span></a>`).join('')}</div></section>`:''}
-  <section class="card"><div class="card-head"><h2>${icon('image')} Slike <small style="color:var(--text-3)">${imgs.length||''}</small></h2></div>
+  <section class="card"><div class="card-head"><h2>${icon('image')} Slike <small style="color:var(--text-3)">${imgs.length||''}</small></h2><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="recWebPick" data-id="${esc(r.id)}">${icon('search')}Pronađi fotku na webu</button></div>
     <div class="card-body">${galleryHTML(imgs,{act:'recImg',id:r.id,cover:r.cover})}</div></section>
   <div class="foot-meta">Dodano ${new Date(r.created||Date.now()).toLocaleDateString('hr-HR')} · zadnja izmjena ${new Date(r.updated||Date.now()).toLocaleString('hr-HR',{dateStyle:'short',timeStyle:'short'})}</div>`;
 }
@@ -460,7 +466,7 @@ function viewRecipeEdit(r,kind){
       ${isDrink?'':`<div class="grid2"><div class="field"><label for="e_src">Izvor (link)</label><input id="e_src" type="url" value="${esc(d.source||'')}" placeholder="https://…"></div>
         <div class="field"><label for="e_links">Ostali linkovi <small>(naziv | url, jedan po retku)</small></label><textarea id="e_links" rows="2" placeholder="Video | https://youtube.com/…">${esc(linksToText(d.links))}</textarea></div></div>`}
     </div></section>
-    <section class="card"><div class="card-head"><h2>${icon('image')} Slike</h2><span class="spacer"></span><small style="color:var(--text-3)">★ = naslovna</small></div>
+    <section class="card"><div class="card-head"><h2>${icon('image')} Slike</h2><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="recWebPick" data-id="${esc(d.id)}">${icon('search')}Pronađi na webu</button></div>
       <div class="card-body">${galleryHTML(imgs,{act:'draftImg',id:d.id,cover:d.cover})}
         <p class="hint">Fotografiraj mobitelom, povuci datoteke ili zalijepi (Ctrl+V). Slike se same smanje (≈200–500 KB).</p></div></section>
   </div>`;
@@ -540,6 +546,6 @@ Object.assign(ACT,{
 FILE_ACT.draftImg=async files=>{readDraftForm();const d=draft.doc;await imgUploadMany(files,id=>{d.images=[...(d.images||[]),id];draft.newImgs.push(id);if(!d.cover)d.cover=id;});renderAll();};
 FILE_ACT.recImg=async(files,el)=>{const r=docById(el.dataset.id);if(!r)return;await imgUploadMany(files,id=>{r.images=[...(r.images||[]),id];if(!r.cover)r.cover=id;});putDoc(r);renderAll();};
 FILE_ACT.recCoverUp=FILE_ACT.recImg;
-FILE_ACT.drinkPhoto=async(files,el)=>{const id=el.dataset.id;const[im]=await imgUploadMany(files.slice(0,1));if(!im)return;const m=dm();const old=m.photo[id];m.photo[id]=im;saveData();if(old)imgDelete(old);renderAll();};
+FILE_ACT.drinkPhoto=async(files,el)=>{const id=el.dataset.id;const[im]=await imgUploadMany(files.slice(0,1));if(!im)return;const m=dm();const old=m.photo[id];m.photo[id]=im;delete m.credit[id];saveData();if(old)imgDelete(old);renderAll();};
 VIEWS.kokteli={render:viewDrinks,label:'Kokteli i napitci'};
 VIEWS.kuharica={render:viewKuharica,label:'Kuharica'};

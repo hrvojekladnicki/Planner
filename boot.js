@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 function normalizeExtra(s){
   s.drinks=s.drinks&&typeof s.drinks==='object'?s.drinks:{};
-  ['fav','rate','note','photo','bar','made'].forEach(k=>{if(!s.drinks[k]||typeof s.drinks[k]!=='object')s.drinks[k]={};});
+  ['fav','rate','note','photo','bar','made','credit','noweb'].forEach(k=>{if(!s.drinks[k]||typeof s.drinks[k]!=='object')s.drinks[k]={};});
   s.diy=s.diy&&typeof s.diy==='object'?s.diy:{};
   if(!Array.isArray(s.diy.cats)||!s.diy.cats.length)s.diy.cats=DIY_DEFAULT_CATS.map(([id,e,n])=>({id,emoji:e,name:n}));
   s.kids=Array.isArray(s.kids)?s.kids.filter(k=>k&&k.id):[];
