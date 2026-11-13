@@ -3,6 +3,7 @@ rules_version = '2';
 // • Vlasnik (uid == ID dokumenta) ima puni pristup svom planneru.
 // • Osobe čiji je (verificirani Google) e-mail u polju sharedWith mogu čitati i mijenjati SAMO sadržaj (payload),
 //   ne mogu mijenjati popis dijeljenja ni vlasnika, niti obrisati planner.
+// • Recepti/DIY/napitci (docs) i slike (blobs) su podkolekcije s istim pravom pristupa.
 // • Sve ostalo (bez prijave, tuđi računi, druge kolekcije) je zabranjeno.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -39,6 +40,25 @@ service cloud.firestore {
           && request.resource.data.get('ownerName', '') == resource.data.get('ownerName', ''))
       );
       allow delete: if isOwner();
+
+      // ── Recepti, DIY projekti, napitci (jedan dokument po stavci) i slike ──
+      // Isti pristup kao planner: vlasnik + osobe s kojima je planner podijeljen.
+      function canUse() {
+        return isOwner() || (myEmail() != '' && myEmail() in get(/databases/$(database)/documents/planners/$(uid)).data.get('sharedWith', []));
+      }
+      match /docs/{docId} {
+        allow read, delete: if canUse();
+        allow create, update: if canUse()
+          && request.resource.data.keys().hasOnly(['kind', 'data', 'updatedAt', 'clientId'])
+          && request.resource.data.kind is string && request.resource.data.kind.size() < 20
+          && request.resource.data.data is string && request.resource.data.data.size() < 950000;
+      }
+      match /blobs/{blobId} {
+        allow read, delete: if canUse();
+        allow create, update: if canUse()
+          && request.resource.data.keys().hasOnly(['d', 'updatedAt'])
+          && request.resource.data.d is string && request.resource.data.d.size() < 1000000;
+      }
     }
 
     // Sve ostalo zaključano

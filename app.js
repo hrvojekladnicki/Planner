@@ -69,6 +69,8 @@ function pickEmoji(n){n=n.toLowerCase();const map=[['kuc','🏠'],['dom','🏠']
 function vibrate(ms=10){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}}
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+// Registar dodatnih prikaza (kuharica, kokteli, DIY, kids) — popunjavaju ih zasebne datoteke
+const VIEWS={}, INPUT_SET={}, CHANGE_SET={};
 
 /* ───────── DATES (kompatibilno s postojećim ključevima) ───────── */
 const DAY_NAMES=['Ponedjeljak','Utorak','Srijeda','Četvrtak','Petak','Subota','Nedjelja'];
@@ -136,6 +138,7 @@ function normalize(s){
   s.notes=Array.isArray(s.notes)?s.notes.filter(n=>n&&n.id):[];
   s.notes.forEach(n=>{n.blocks=Array.isArray(n.blocks)&&n.blocks.length?n.blocks:[{id:uid('b'),t:'p',x:'',d:false}];n.blocks.forEach(b=>{b.x=b.x==null?'':String(b.x);if(!['p','c','h'].includes(b.t))b.t='p';});});
   delete s.activeTab; // aktivni tab se više ne sinkronizira (svaki uređaj ima svoj)
+  if(typeof normalizeExtra==='function')normalizeExtra(s);
   return s;
 }
 let state=normalize(getDefaultData());
@@ -231,18 +234,20 @@ function defaultRemAt(r){
 
 /* ───────── ROUTER ───────── */
 function route(){
-  const h=decodeURIComponent(location.hash.replace(/^#\/?/,''));const p=h.split('/');
+  const h=decodeURIComponent(location.hash.replace(/^#\/?/,'')).split('?')[0];const p=h.split('/');
   if(p[0]==='history')return{v:'history'};
   if(p[0]==='tab'&&p[1])return{v:'tab',id:p[1],hl:p[2]||''};
   if(p[0]==='web')return{v:'web',cat:p[1]||''};
   if(p[0]==='notes')return{v:'notes'};
   if(p[0]==='note'&&p[1])return{v:'note',id:p[1]};
   if(p[0]==='dash')return{v:'dash',hl:p[1]||''};
+  if(VIEWS[p[0]])return{v:p[0],id:p[1]||'',sub:p[2]||''};
   return{v:'dash',hl:''};
 }
 function go(h){if(location.hash===h)renderAll();else location.hash=h;}
 let lastView='';
-window.addEventListener('hashchange',()=>{const r=route();const k=r.v+(r.id||'');if(k!==lastView)window.scrollTo({top:0});renderAll();});
+function viewKey(r){return r.v+'/'+(r.id||'')+'/'+(r.sub||'');}
+window.addEventListener('hashchange',()=>{const r=route();const k=viewKey(r);if(k!==lastView)window.scrollTo({top:0});renderAll();});
 
 /* ───────── RENDER ───────── */
 function renderAll(){
@@ -252,9 +257,10 @@ function renderAll(){
   if(r.v==='tab'&&!tabById(r.id)){location.hash='#/';return;}
   if(r.v==='note'&&!noteById(r.id)){location.hash='#/notes';return;}
   if(r.v==='dash'&&r.hl){const f=findTask(r.hl);if(f&&f.kind==='day')viewingWeekKey=f.wk===getCurrentWeekKey()?null:f.wk;}
+  if(typeof beforeRender==='function')beforeRender(r);
   renderShell(r);
   const v=$('#view');
-  const k=r.v+(r.id||'');
+  const k=viewKey(r);
   if(k!==lastView){v.style.animation='none';void v.offsetWidth;v.style.animation='';lastView=k;}
   if(r.v==='dash')v.innerHTML=viewDash();
   else if(r.v==='history')v.innerHTML=viewHistory();
@@ -262,7 +268,10 @@ function renderAll(){
   else if(r.v==='web')v.innerHTML=viewWeb(r.cat);
   else if(r.v==='notes')v.innerHTML=viewNotes();
   else if(r.v==='note')v.innerHTML=viewNote(noteById(r.id));
+  else if(VIEWS[r.v])v.innerHTML=VIEWS[r.v].render(r);
   initSortables(r);
+  if(VIEWS[r.v]&&VIEWS[r.v].after)VIEWS[r.v].after(r);
+  $$('#view textarea.grow').forEach(autoGrow);
   if(r.v==='dash')gcalEnsureWeek(viewingWeekKey||getCurrentWeekKey());
   if(fk&&!(r.v==='note'&&focusBlock)){const n=document.querySelector(`[data-fk="${fk}"]`);if(n){n.focus({preventScroll:true});}}
   if(r.v==='note')autoGrowAll();
@@ -296,6 +305,7 @@ function renderShell(r){
       <a class="nav-item${r.v==='dash'?' active':''}" href="#/"><span class="emo">${icon('home')}</span><span>Dashboard</span>${hpOpen?`<span class="count hot">${hpOpen}</span>`:''}</a>
       <a class="nav-item${r.v==='history'?' active':''}" href="#/history"><span class="emo">${icon('history')}</span><span>Povijest</span></a>
       <a class="nav-item${r.v==='web'?' active':''}" href="#/web"><span class="emo">${icon('globe')}</span><span>Web stranice</span>${state.bookmarks.length?`<span class="count">${state.bookmarks.length}</span>`:''}</a>
+      ${typeof sectionsNav==='function'?sectionsNav(r):''}
       <div class="nav-label">Liste <button data-act="tabEdit" data-id="" title="Nova lista" aria-label="Nova lista">${icon('plus')}</button></div>
       <div id="navTabs">${navTabs}</div>
       <div class="nav-label"><a href="#/notes" style="color:inherit;text-decoration:none">Notes</a> <button data-act="noteNew" data-tpl="blank" title="Nova bilješka" aria-label="Nova bilješka">${icon('plus')}</button></div>
@@ -325,8 +335,8 @@ function renderShell(r){
     <a href="#/" class="${r.v==='dash'?'on':''}">${icon('home')}Početna</a>
     <button data-act="lists" class="${isTab?'on':''}">${icon('list')}Liste</button>
     <a href="#/notes" class="${r.v==='notes'||r.v==='note'?'on':''}">${icon('note')}Notes</a>
-    <a href="#/history" class="${r.v==='history'?'on':''}">${icon('history')}Povijest</a>
-    <a href="#/web" class="${r.v==='web'?'on':''}">${icon('globe')}Web</a>`;
+    <a href="#/kids" class="${r.v==='kids'?'on':''}">${icon('kids')}Kids</a>
+    <button data-act="more" class="${['history','web','kuharica','kokteli','diy'].includes(r.v)?'on':''}">${icon('grid')}Više</button>`;
   paintSync();
 }
 let syncState={type:'syncing',text:'Učitavam…'};
@@ -409,6 +419,7 @@ function viewDash(){
       <button class="stat" data-act="notif"><div class="ico ico-warn">${icon('bell')}</div><div><div class="num">${rem.due.length}${rem.soon.length?`<small style="font-size:.9rem;color:var(--text-3)"> +${rem.soon.length}</small>`:''}</div><div class="lbl">Podsjetnici</div></div></button>
     </div>
   </section>
+  ${typeof dashExtra==='function'?dashExtra():''}
 
   <div class="dash-grid">
     <section class="card card-urgent" id="hpCard">
@@ -915,7 +926,7 @@ function openSettings(focus){
       <button class="btn btn-primary btn-sm" id="secRun" ${cloud?'':'disabled'}>${icon('shield')}Pokreni provjeru</button>${cloud?'':'<div style="font-size:.8rem;color:var(--text-3)">Dostupno nakon prijave.</div>'}
       <div id="secOut">${secResults?secHTML():''}</div></div></details>
     <details class="set"><summary>${icon('archive')}<b>Sigurnosna kopija</b></summary><div class="set-body">
-      <div style="font-size:.84rem;color:var(--text-2)">Preuzmi sve podatke (liste, tjedne, bilješke, stranice) kao JSON datoteku — korisno prije dijeljenja ili većih promjena.</div>
+      <div style="font-size:.84rem;color:var(--text-2)">Preuzmi sve podatke (liste, tjedne, bilješke, stranice, recepte, DIY projekte, raspored djece) kao JSON datoteku — korisno prije dijeljenja ili većih promjena. Slike nisu u datoteci (ostaju u Firebaseu).</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" id="bkExport">${icon('archive')}Preuzmi kopiju</button>
       <label class="btn btn-ghost btn-sm" style="cursor:pointer">${icon('refresh')}Vrati iz kopije<input type="file" id="bkImport" accept="application/json,.json" hidden></label></div></div></details>
     <div class="sheet-list"><button class="row" data-act="notif">${icon('bell')}Podsjetnici i obavijesti</button><button class="row" data-act="theme">${icon(isDark()?'sun':'moon')}${isDark()?'Svijetla tema':'Tamna tema'}</button></div>`,
@@ -936,9 +947,9 @@ function openSettings(focus){
           try{await window._fbSetSharing(list);toast('Podijeljeno s '+v);}catch(e){toast('Greška: '+e.message);}openSettings('share');};
         sa.addEventListener('click',add);$('#shareEmail',el).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add();}});}
       $$('[data-unshare]',el).forEach(b=>b.addEventListener('click',async()=>{const list=(plannerMeta.sharedWith||[]).filter(x=>x!==b.dataset.unshare);try{await window._fbSetSharing(list);toast('Pristup uklonjen');}catch(e){toast('Greška: '+e.message);}openSettings('share');}));
-      $('#bkExport',el).addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`planner-backup-${localISO(new Date())}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('Kopija preuzeta');});
+      $('#bkExport',el).addEventListener('click',()=>{const blob=new Blob([JSON.stringify(Object.assign({},state,{_docs:typeof DOCS==='object'?DOCS:{}}),null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`planner-backup-${localISO(new Date())}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('Kopija preuzeta');});
       $('#bkImport',el).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||!Array.isArray(data.tabs))throw new Error('Nije Planner kopija');
-        confirmSheet2('Zamijeniti SVE trenutne podatke podacima iz kopije “'+f.name+'”?','Vrati kopiju',()=>{state=normalize(data);saveData();renderAll();toast('Podaci vraćeni iz kopije');});}catch(err){toast('Greška: '+err.message);}});
+        confirmSheet2('Zamijeniti SVE trenutne podatke podacima iz kopije “'+f.name+'”?','Vrati kopiju',()=>{const docs=data._docs;delete data._docs;state=normalize(data);saveData();if(docs&&typeof putDoc==='function')Object.values(docs).forEach(d=>d&&d.id&&d.kind&&putDoc(d,{now:true}));renderAll();toast('Podaci vraćeni iz kopije');});}catch(err){toast('Greška: '+err.message);}});
       const sr=$('#secRun',el);if(sr)sr.addEventListener('click',async()=>{sr.disabled=true;sr.textContent='Provjeravam…';secResults=await runSecurityCheck();openSettings('sec');});
     }});
 }
@@ -1494,11 +1505,13 @@ document.addEventListener('input',e=>{
     if(k==='histSearch')histSearch=t.value;
     if(k==='bmSearch')bmSearch=t.value;
     if(k==='tabSearch')tabState(t.dataset.id).q=t.value;
+    if(INPUT_SET[k])INPUT_SET[k](t.value,t);
     renderAll();const n=$(`[data-fk="${t.dataset.fk}"]`);if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}
   },180);
 });
 document.addEventListener('change',e=>{
   const t=e.target;if(t.dataset&&t.dataset.change==='plannerSwitch'){window._fbSwitch&&window._fbSwitch(t.value);return;}
+  if(t.dataset&&CHANGE_SET[t.dataset.change]){CHANGE_SET[t.dataset.change](t.value,t);return;}
   if(t.dataset&&t.dataset.change==='pickWeek'&&t.value){const wk=getWeekKey(fromInputDate(t.value));viewingWeekKey=wk===getCurrentWeekKey()?null:wk;refreshBoard();}
 });
 // tap na prošli dan na mobitelu otvara/zatvara ga
@@ -1519,11 +1532,6 @@ window.onPlannerMeta=m=>{plannerMeta=m;if(!m.own)toast('Otvoren je planner: '+(m
 window.onSharedList=list=>{sharedPlanners=list;renderAll();};
 window.onCloudReady=()=>{cloudReady=true;if(!startupDone){startupDone=true;setTimeout(()=>checkReminders(true),600);}};
 
-if(LOCAL_MODE){
-  try{const raw=localStorage.getItem(LOCAL_KEY);if(raw)state=normalize(JSON.parse(raw));}catch(e){}
-  window.onSignedIn({name:'Lokalni korisnik',photo:'',email:'samo ovaj preglednik'});
-  setSyncStatus('local','Lokalni način');window.onCloudReady();
-}
 
 // service worker (potreban za obavijesti na Androidu i instalaciju kao aplikacija)
 if('serviceWorker'in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));

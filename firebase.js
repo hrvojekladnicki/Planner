@@ -5,7 +5,7 @@ if (!window.PLANNER_LOCAL) {
   const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } =
     await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
   const { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, query, where,
-    onSnapshot, setDoc, updateDoc, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    onSnapshot, setDoc, updateDoc, getDoc, deleteDoc, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
 
   // Ovi podaci NISU tajni (javni su u svakoj Firebase web aplikaciji). Podatke štite Firestore Rules.
   const firebaseConfig = {
@@ -27,7 +27,7 @@ if (!window.PLANNER_LOCAL) {
   const CLIENT_ID = Math.random().toString(36).slice(2, 10);
   let me = null;            // prijavljeni korisnik
   let activeUid = null;     // čiji planner je otvoren (moj ili podijeljeni)
-  let unsub = null, unsubShared = null, saveTimer = null, dirty = false, lastPayload = null, isOwn = true;
+  let unsub = null, unsubDocs = null, unsubShared = null, saveTimer = null, dirty = false, lastPayload = null, isOwn = true;
 
   window._fbInfo = { projectId: firebaseConfig.projectId, apiKey: firebaseConfig.apiKey };
   window._fbUid = () => (me ? me.uid : null);
@@ -50,7 +50,9 @@ if (!window.PLANNER_LOCAL) {
   };
   window._fbSignOut = async () => {
     await saveNow();
+    if (window.flushDocs) await window.flushDocs();
     if (unsub) unsub();
+    if (unsubDocs) unsubDocs();
     if (unsubShared) unsubShared();
     try { sessionStorage.clear(); } catch (e) {}
     await signOut(auth);
@@ -67,6 +69,7 @@ if (!window.PLANNER_LOCAL) {
       watchShared();
     } else {
       if (unsub) { unsub(); unsub = null; }
+      if (unsubDocs) { unsubDocs(); unsubDocs = null; }
       if (unsubShared) { unsubShared(); unsubShared = null; }
       me = null; activeUid = null;
       window.onSignedOut();
@@ -90,6 +93,7 @@ if (!window.PLANNER_LOCAL) {
     const target = uid || me.uid;
     if (target === activeUid) return;
     await saveNow();
+    if (window.flushDocs) await window.flushDocs();
     try { localStorage.setItem('planner.active.' + me.uid, target); } catch (e) {}
     subscribe(target);
   };
@@ -98,6 +102,7 @@ if (!window.PLANNER_LOCAL) {
     if (unsub) unsub();
     activeUid = uid; isOwn = uid === me.uid; lastPayload = null; dirty = false;
     window.setSyncStatus('syncing', 'Učitavam…');
+    subscribeDocs(uid);
     const ref = doc(db, 'planners', uid);
     unsub = onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
       const { fromCache, hasPendingWrites } = snap.metadata;
@@ -146,6 +151,31 @@ if (!window.PLANNER_LOCAL) {
     const clean = [...new Set(emails.map((e) => String(e).trim().toLowerCase()).filter(Boolean))].slice(0, 20);
     await setDoc(doc(db, 'planners', me.uid), { sharedWith: clean, ownerEmail: (me.email || '').toLowerCase(), ownerName: me.displayName || '' }, { merge: true });
   };
+
+  // ═════ Zasebni dokumenti (recepti, DIY projekti, napitci) — planners/{uid}/docs/{id} ═════
+  // Svaki recept/projekt je svoj dokument, pa nema limita od 1 MB za cijeli planner.
+  function subscribeDocs(uid) {
+    if (unsubDocs) unsubDocs();
+    window.onDocsReset && window.onDocsReset();
+    unsubDocs = onSnapshot(collection(db, 'planners', uid, 'docs'), (qs) => {
+      const changes = [];
+      qs.docChanges().forEach((ch) => {
+        if (ch.doc.metadata.hasPendingWrites) return;
+        if (ch.type === 'removed') { changes.push({ type: 'removed', id: ch.doc.id }); return; }
+        try { changes.push({ type: 'upsert', id: ch.doc.id, data: JSON.parse(ch.doc.get('data') || '{}') }); } catch (e) { console.error('Doc parse', e); }
+      });
+      window.onDocChanges && window.onDocChanges(changes, qs.metadata.fromCache);
+    }, (err) => {
+      console.error('Docs error', err);
+      window.onDocChanges && window.onDocChanges([], false, err.code === 'permission-denied' ? 'Nema dozvole za recepte/projekte — objavi nova Firestore pravila' : 'Greška kod učitavanja recepata/projekata');
+    });
+  }
+  window._fbDocPut = (id, kind, json) => setDoc(doc(db, 'planners', activeUid, 'docs', id), { kind, data: json, updatedAt: serverTimestamp(), clientId: CLIENT_ID });
+  window._fbDocDel = (id) => deleteDoc(doc(db, 'planners', activeUid, 'docs', id));
+  // Slike — planners/{uid}/blobs/{id} (komprimirani JPEG kao data URL, < 900 KB)
+  window._fbBlobPut = (id, data) => setDoc(doc(db, 'planners', activeUid, 'blobs', id), { d: data, updatedAt: serverTimestamp() });
+  window._fbBlobGet = async (id) => { const s = await getDoc(doc(db, 'planners', activeUid, 'blobs', id)); return s.exists() ? s.get('d') : null; };
+  window._fbBlobDel = (id) => deleteDoc(doc(db, 'planners', activeUid, 'blobs', id));
 
   // Kratki debounce (400 ms) => promjena se na drugom uređaju vidi za ~1 s
   window._scheduleSave = () => { dirty = true; window.setSyncStatus('syncing', 'Spremam…'); clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); };

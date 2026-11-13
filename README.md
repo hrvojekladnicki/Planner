@@ -29,9 +29,42 @@ Osobni planer (To Do, tjedni plan, liste, web stranice) sa sinkronizacijom u stv
 
 Prečaci na računalu: `N` otvara brzo dodavanje, `/` pretragu, `Esc` zatvara prozor.
 
+## Novo u v4 — Kuća i obitelj
+
+Nova sekcija u bočnom izborniku (na mobitelu: **Kids** i **Više** u donjoj traci).
+
+- **🍳 Kuharica** — vlastiti recepti sa slikama.
+  - **Zalijepi recept**: tekst s weba ili iz poruke se sam raspodijeli na naslov, porcije, vrijeme, sastojke i korake.
+  - Količine se prepoznaju (`250 g`, `1/2 žličice`, `2–3 režnja`) pa se **skaliraju** po broju porcija.
+  - Sastojci i koraci se mogu kvačiti. Vremena u koracima (“20 min”) postaju **timeri** sa zvukom i obaviješću.
+  - **Kuhaj korak po korak**: velika slova, ekran ostaje upaljen, swipe lijevo/desno.
+  - Ostalo: kategorije, oznake, ocjena, favoriti, “Skuhao sam” brojač, linkovi/izvor, galerija s naslovnom slikom.
+  - Sastojci idu **na popis za dućan** (bilješka “🛒 Popis za dućan”). Uz to: kopiranje kao tekst, dijeljenje, ispis i “planiraj za danas”.
+- **🍸 Kokteli i napitci** — 19 recepata s postera i 9 zimskih/domaćih dodataka. Dodaci su: kuhana rakija, kuhano bijelo vino, Bombardino, Hot Buttered Rum, vruća čokolada s Baileysom, topli jabučni punč, Old Fashioned, White Russian i Orahovac.
+  - Skaliranje po osobama, prikaz u ml / cl / oz, filtri po žestici, favoriti, ocjene i vlastita bilješka.
+  - **Moj bar**: označiš što imaš doma i vidiš što možeš napraviti odmah, a što ti fali za samo jedan sastojak.
+  - Dodaj svoju fotku, prilagodi recept (tvoja verzija) ili dodaj potpuno novi napitak.
+- **🔨 DIY** — projekti po **podsekcijama** (Stolarija, Kuća, Vrt, Elektrika, Popravci, OPG). Podsekcije se mogu dodavati i uređivati.
+  - Predlošci: drvena vrata, polica/ormar, nadstrešnica/pergola, popravak.
+  - **Materijal** s količinom, cijenom, trgovinom/linkom i kvačicom “nabavljeno”, plus zbrojevi troška. Zalijepi popis i dobiješ više stavki (npr. “4 kom grede 12,50 €”).
+  - **Alat**, **koraci** (svaki korak može imati slike), **galerija** skica i fotki, **linkovi**, mjere, budžet, rok i status.
+  - Nenabavljeni materijal može ići na popis za kupnju ili u Hitno. Projekt se može dodati na To Do.
+- **🧒 Kids** — školski raspored po djetetu.
+  - **Zvono**: generator (početak, trajanje sata, mali i veliki odmor). Podržane su **A/B smjene** koje se izmjenjuju tjedno.
+  - Raspored sati s obojenim predmetima: klik na polje i odabir predmeta, uz automatski prelazak na idući sat.
+  - Izvanškolske aktivnosti i **važni datumi**: testovi, zadaće, izleti, “nema nastave”. Datum može dodati i podsjetnik u tjedni plan.
+  - Na **Dashboardu** je kartica “Djeca danas” s podacima *U školi 08:00 – 12:35*, trenutnim satom i nadolazećim testovima.
+
+### Pohrana (skalabilno)
+- Recepti, DIY projekti i vlastiti napici spremaju se kao **zasebni dokumenti** (`planners/{uid}/docs/{id}`), pa više ne vrijedi limit od 1 MB za cijeli planner.
+- **Slike** se u pregledniku smanje (≈200–500 KB plus sličica) i spremaju u `planners/{uid}/blobs/{id}`. Ovo radi na besplatnom Firebase planu, bez Storagea.
+- Dijeljeni planner vidi i recepte, projekte i slike.
+
+> ⚠️ **Obavezno ponovno objavi `firestore.rules`** (Firestore → Rules → zalijepi → Publish). Bez novih pravila recepti, DIY i slike se neće spremati u oblak.
+
 ## Postavljanje (jednom)
 
-1. Uploadaj sve datoteke i mapu `vendor/` u repo (`planner.html`, `app.js`, `firebase.js`, `vendor/sortable.min.js`, `index.html`, `sw.js`, `manifest.webmanifest`, `icon*.png`, `icon.svg`, `firestore.rules`).
+1. Uploadaj sve datoteke i mapu `vendor/` u repo (`planner.html`, `app.js`, `store.js`, `drinks-data.js`, `kitchen.js`, `diy.js`, `kids.js`, `boot.js`, `features.css`, `firebase.js`, `vendor/sortable.min.js`, `index.html`, `sw.js`, `manifest.webmanifest`, `icon*.png`, `icon.svg`, `firestore.rules`).
 2. **GitHub Pages**: Settings → Pages → Source: *Deploy from a branch* → `main` / root. Adresa će biti `https://hrvojekladnicki.github.io/Planner/`.
 3. **Firebase Console → Authentication → Settings → Authorized domains**: dodaj `hrvojekladnicki.github.io`. Bez toga Google prijava ne radi s te adrese.
 4. **Firestore → Rules**: zalijepi sadržaj `firestore.rules` → **Publish**. Ovo je obavezno: pravila su jedino što štiti podatke, a ujedno omogućuju dijeljenje.
