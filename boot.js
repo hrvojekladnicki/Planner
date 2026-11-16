@@ -7,6 +7,11 @@ function normalizeExtra(s){
   ['fav','rate','note','photo','bar','made','credit','noweb'].forEach(k=>{if(!s.drinks[k]||typeof s.drinks[k]!=='object')s.drinks[k]={};});
   s.diy=s.diy&&typeof s.diy==='object'?s.diy:{};
   if(!Array.isArray(s.diy.cats)||!s.diy.cats.length)s.diy.cats=DIY_DEFAULT_CATS.map(([id,e,n])=>({id,emoji:e,name:n}));
+  if(!s.diy.v2){ // v4.4: OPG dobiva vlastite podsekcije (bilješke, checkliste, rokovi)
+    const opg=s.diy.cats.find(c=>c.id==='opg');
+    if(opg){opg.kind='general';[['opg-papiri','📑','Papirologija'],['opg-radovi','🌿','Plan radova'],['opg-linkovi','🔖','Bilješke i linkovi']].forEach(([id,e,n])=>{if(!s.diy.cats.find(c=>c.id===id))s.diy.cats.push({id,emoji:e,name:n,parent:'opg'});});}
+    s.diy.v2=1;}
+  s.pins=Array.isArray(s.pins)?s.pins.filter(p=>p&&p.id&&p.ref):[];
   s.kids=Array.isArray(s.kids)?s.kids.filter(k=>k&&k.id):[];
   s.kids.forEach(normKid);
 }
@@ -15,7 +20,8 @@ state=normalize(state);
 function beforeRender(r){
   // urednik recepta: sačuvaj ono što je upisano prije ponovnog crtanja; očisti skicu kad se izađe
   const editing=(r.v==='kuharica'||r.v==='kokteli')&&(r.id==='new'||r.sub==='edit');
-  if(draft&&$('#e_title'))try{readDraftForm();}catch(e){}
+  if(draft&&$('#e_title')&&!draft.skipRead)try{readDraftForm();}catch(e){}
+  if(draft)draft.skipRead=false;
   if(draft&&!editing){if(draft.isNew)draft.newImgs.forEach(imgDelete);draft=null;}
 }
 
@@ -29,8 +35,9 @@ function sectionsNav(r){
     ${nav('#/kuharica',r.v==='kuharica','🍳','Kuharica',recN)}
     ${nav('#/kokteli',r.v==='kokteli','🍸','Kokteli i napitci','')}
     ${nav('#/diy',r.v==='diy'&&!r.id,'🔨','DIY',act?`${act} u tijeku`:'')}
-    ${diyOpen||true?`<div class="nav-sub">${diyCats().map(c=>{const n=projects().filter(p=>p.cat===c.id&&p.status!=='done').length;
-      return nav('#/diy/c/'+encodeURIComponent(c.id),(r.id==='c'&&r.sub===c.id)||(curProj&&curProj.cat===c.id),c.emoji,c.name,n||'');}).join('')}</div>`:''}
+    ${(()=>{const walk=par=>diyCats().filter(c=>(c.parent||'')===par).map(c=>{const n=projects().filter(p=>catDesc(c.id).includes(p.cat)&&p.status!=='done').length;const kids=walk(c.id);
+        return nav('#/diy/c/'+encodeURIComponent(c.id),(r.id==='c'&&r.sub===c.id)||(curProj&&curProj.cat===c.id),c.emoji,c.name,n||'')+(kids?`<div class="nav-sub">${kids}</div>`:'');}).join('');
+      return`<div class="nav-sub">${walk('')}</div>`;})()}
     ${(()=>{const t0=localISO(today());const up=trips().filter(t=>t.status!=='idea'&&t.status!=='done'&&(!t.to||t.to>=t0)).sort((a,b)=>(a.from||'9').localeCompare(b.from||'9'));
       return nav('#/izleti',r.v==='izleti'&&!r.id,'✈️','Izleti i putovanja',up.length||'')+(up.length?`<div class="nav-sub">${up.slice(0,4).map(t=>nav('#/izleti/'+encodeURIComponent(t.id),r.v==='izleti'&&r.id===t.id,esc(t.emoji||'🧳'),t.title||'Izlet','')).join('')}</div>`:'');})()}
     ${nav('#/kids',r.v==='kids'&&!r.id,'🧒','Kids','')}
@@ -44,13 +51,12 @@ ACT.more=()=>openSheet({title:'Sve sekcije',side:true,body:`<div class="tiles">
 
 /* ───────── DASHBOARD dodaci ───────── */
 function dashExtra(){
-  const kc=kidsDashCard()+tripsDashCard();
-  const prog=projects().filter(p=>p.status==='progress').sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,3);
+  const pc=pinsDashCard();const kc=kidsDashCard()+tripsDashCard();
+  const prog=projects().filter(p=>p.status==='progress'&&projMods(p).includes('steps')).sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,3);
   const diy=prog.length?`<section class="card"><div class="card-head"><h2>🔨 DIY u tijeku</h2><span class="spacer"></span><a class="link-btn" href="#/diy">Svi ${icon('arrowR')}</a></div>
     <div class="card-body dash-proj">${prog.map(p=>{const s=pStats(p);const pct=s.steps?Math.round(s.stepsDone/s.steps*100):0;const nx=(p.steps||[]).find(x=>!x.d&&(x.x||'').trim());
       return`<a class="dp" href="#/diy/p/${encodeURIComponent(p.id)}"><span class="dp-e">${esc(p.emoji||'🛠️')}</span><div><b>${esc(p.title)}</b><small>${nx?'Sljedeće: '+esc(nx.x.slice(0,70)):'Svi koraci gotovi'}</small><div class="bar"><i style="width:${pct}%"></i></div></div><span class="dp-p">${pct}%</span></a>`;}).join('')}</div></section>`:'';
-  if(!kc&&!diy)return'';
-  return`<div class="dash-extra${kc&&diy?' two':''}">${kc}${diy}</div>`;
+  return pc+(kc||diy?`<div class="dash-extra">${kc}${diy}</div>`:'');
 }
 
 INPUT_SET.dSearch=v=>{KUI.dq=v;};

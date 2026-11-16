@@ -267,7 +267,7 @@ function viewKuharica(r){
   list.sort(S[KUI.rsort]||S.recent);
   return`
   <div class="page-head"><div><a class="crumb" href="#/">${icon('chevL')}Dashboard</a><h1>🍳 Kuharica</h1><p>${all.length} ${plural(all.length,'recept','recepta','recepata')} · tvoja osobna kuharica sa slikama.</p></div>
-    <div class="head-acts"><a class="btn btn-outline" href="#/kuharica/new?import=1">${icon('wand')}Zalijepi recept</a><a class="btn btn-primary" href="#/kuharica/new">${icon('plus')}Novi recept</a></div></div>
+    <div class="head-acts"><a class="btn btn-outline" href="#/kuharica/new?url=1">${icon('link')}Uvezi s linka</a><a class="btn btn-outline" href="#/kuharica/new?import=1">${icon('wand')}Zalijepi tekst</a><a class="btn btn-primary" href="#/kuharica/new">${icon('plus')}Novi recept</a></div></div>
   ${!docsLoaded&&!all.length?`<div class="card empty" style="padding:40px"><span class="big">⏳</span>Učitavam recepte…</div>`:!all.length?`
   <section class="card hero-empty"><div><span class="big">👩‍🍳</span><h2>Kuharica je prazna</h2><p>Dodaj prvi recept — upiši ga, zalijepi tekst s weba ili iz poruke (sastojci i koraci se sami prepoznaju), dodaj slike s mobitela.</p>
     <div class="btn-row" style="justify-content:center"><a class="btn btn-primary" href="#/kuharica/new">${icon('plus')}Novi recept</a><a class="btn btn-outline" href="#/kuharica/new?import=1">${icon('wand')}Zalijepi recept</a></div></div></section>`:`
@@ -289,7 +289,7 @@ function viewRecipe(id){
     <h1>${r.emoji?`<span class="emo">${esc(r.emoji)}</span>`:''}${esc(r.title||'Bez naslova')}</h1></div>
     <div class="head-acts">
       <button class="ibtn big${r.fav?' fav-on':''}" data-act="recFav" data-id="${esc(r.id)}" title="Favorit">${icon(r.fav?'star':'starO')}</button>
-      <a class="btn btn-outline btn-sm" href="#/kuharica/${encodeURIComponent(r.id)}/edit">${icon('edit')}Uredi</a>
+      ${pinBtn({t:'recipe',id:r.id})}      <a class="btn btn-outline btn-sm" href="#/kuharica/${encodeURIComponent(r.id)}/edit">${icon('edit')}Uredi</a>
       <button class="ibtn big" data-act="recMenu" data-id="${esc(r.id)}" title="Opcije">${icon('more')}</button></div></div>
   <section class="rhero" style="--h:${hueOf(r.cat||r.title)}">
     ${r.cover?`<button class="rhero-img" data-act="lightbox" data-ids="${esc(imgs.join(','))}" data-i="0">${imgTag(r.cover,{thumb:false})}</button>`:`<div class="rhero-ph"><span>${esc(r.emoji||'🍽️')}</span><div class="btn-row" style="margin:0;justify-content:center"><button class="btn btn-ghost btn-sm" data-act="recWebPick" data-id="${esc(r.id)}">${icon('search')}Pronađi pravu fotku</button>${fileBtn('recCoverUp',r.id,{label:'Svoja fotka',multiple:false,cls:'btn btn-ghost btn-sm'})}</div></div>`}
@@ -427,14 +427,17 @@ function startDraft(kind,id){
 function viewRecipeEdit(r,kind){
   const isDrink=kind==='drink';const dr=startDraft(kind,r.id==='new'?null:r.id);const d=dr.doc;
   const back=isDrink?(dr.isNew?'#/kokteli':'#/kokteli/'+encodeURIComponent(d.id)):(dr.isNew?'#/kuharica':'#/kuharica/'+encodeURIComponent(d.id));
-  const imp=/import=1/.test(location.hash);
+  const imp=/import=1|url=1/.test(location.hash);
   const imgs=[...(d.cover&&!(d.images||[]).includes(d.cover)?[d.cover]:[]),...(d.images||[])];
   return`
   <div class="page-head"><div><a class="crumb" href="${back}">${icon('chevL')}${isDrink?'Kokteli i napitci':'Kuharica'}</a><h1>${dr.isNew?(isDrink?'Novi napitak':'Novi recept'):'Uredi'}${d.base?' <small class="pill">tvoja verzija</small>':''}</h1></div>
     <div class="head-acts"><a class="btn btn-ghost" href="${back}" data-act="draftCancel">Odustani</a><button class="btn btn-primary" data-act="draftSave">${icon('check')}Spremi</button></div></div>
   <details class="card import-box" ${imp?'open':''}>
-    <summary>${icon('wand')}<b>Zalijepi cijeli recept</b><small>tekst s weba, iz poruke ili bilješke — sastojci i koraci se sami raspodijele</small></summary>
-    <div class="card-body"><textarea class="input" id="impText" rows="7" placeholder="Palačinke&#10;Za 4 osobe&#10;&#10;Sastojci:&#10;250 g brašna&#10;3 jaja&#10;500 ml mlijeka&#10;prstohvat soli&#10;&#10;Priprema:&#10;1. Sve sastojke izmiješaj u glatko tijesto.&#10;2. Ostavi 20 min da odstoji.&#10;3. Peci na vrućoj tavi."></textarea>
+    <summary>${icon('wand')}<b>Uvezi recept — s linka ili iz teksta</b><small>zalijepi link javne stranice recepta ili cijeli tekst — sastojci, koraci, vremena i slika se sami popune</small></summary>
+    <div class="card-body">${isDrink?'':`
+      <div class="field"><label for="impUrl">🔗 Link recepta</label><div class="add-row" style="margin:0"><input class="input" id="impUrl" type="url" data-enter="draftUrl" placeholder="https://www.coolinarika.com/recept/…"><button class="btn btn-week" data-act="draftUrl">${icon('wand')}Uvezi s linka</button></div>
+        <small class="hint" style="margin-top:4px">Stranica se čita preko javnog CORS posrednika (allorigins / corsproxy / r.jina.ai), jer preglednik inače ne smije čitati tuđe stranice.</small></div>
+      <div class="sec-title" style="margin:14px 0 6px">…ili zalijepi tekst</div>`}<textarea class="input" id="impText" rows="7" placeholder="Palačinke&#10;Za 4 osobe&#10;&#10;Sastojci:&#10;250 g brašna&#10;3 jaja&#10;500 ml mlijeka&#10;prstohvat soli&#10;&#10;Priprema:&#10;1. Sve sastojke izmiješaj u glatko tijesto.&#10;2. Ostavi 20 min da odstoji.&#10;3. Peci na vrućoj tavi."></textarea>
       <div class="btn-row"><button class="btn btn-week btn-sm" data-act="draftImport">${icon('wand')}Raspodijeli u polja</button><small style="color:var(--text-3)">Ništa se ne sprema dok ne klikneš Spremi.</small></div></div>
   </details>
   <div class="edit-grid">

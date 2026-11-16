@@ -29,7 +29,25 @@ Osobni planer (To Do, tjedni plan, liste, web stranice) sa sinkronizacijom u stv
 
 Prečaci na računalu: `N` otvara brzo dodavanje, `/` pretragu, `Esc` zatvara prozor.
 
-## Novo u v4 — Kuća i obitelj
+## Novo u v4.4
+
+- **Popravljen bug u Notes/listama**: kursor više ne skače na početak retka dok tipkaš. Uzrok: svaka potvrda spremanja s poslužitelja je ponovno crtala ekran.
+  - Backspace na početku stavke sada **spaja** stavku s prethodnom.
+  - Enter na praznoj stavki izlazi iz checkliste.
+- **↶ Poništi / ↷ Ponovi**: gumb gore desno ili **Ctrl+Z / Ctrl+Shift+Z** (izvan polja za upis). Radi za sve: zadatke, liste, bilješke, recepte, projekte i dashboard listu.
+- **📌 Dashboard lista**: bilo što zakačiš na dashboard s **prioritetom, rokom, podsjetnikom i bilješkom**. To može biti bilješka, lista, stavka liste, DIY projekt, OPG stranica ili podsekcija, checklista ili zadatak projekta, recept ili izlet.
+  - Checklista se vidi i kvači izravno na dashboardu, a nove stavke se dodaju odmah tamo.
+  - Filtri: traži po imenu, prioritet, izvor/projekt, datum (danas, ovaj tjedan, zakašnjelo, bez roka) i gotovi.
+- **Liste**: svaka stavka može imati opis i **checklistu** (podzadatke). Lista se može prikazati **bez checkboxa** (kao bilješke) i zakačiti na dashboard.
+- **Kuharica — uvoz s linka**: zalijepi link javne stranice recepta i automatski se popune naslov, porcije, vremena, sastojci, koraci, kategorija, oznake i slika.
+  - Čita se schema.org JSON-LD, a ako ga nema, tekst stranice.
+  - Stranica se dohvaća preko javnog CORS posrednika (allorigins, corsproxy, r.jina.ai).
+- **Projekti s izborom kartica**: postoje dvije vrste projekata, uz ⚙ Kartice za uključivanje i isključivanje pojedinih kartica.
+  - **DIY** ima materijal, alat, korake, slike i linkove.
+  - **Bilješke/OPG** ima **zadatke s rokovima, checkliste, bilješke**, linkove i slike.
+- **Ugniježđene podsekcije**: npr. **OPG / Papirologija**, **OPG / Plan radova** i **OPG / Bilješke i linkovi**, sa zasebnim uređivanjem, premještanjem i kačenjem na dashboard. Predložak "Plan radova" ima okvirni godišnji raspored (rezidba, gnojenje, zaštita, berba, pečenje rakije).
+
+
 
 Nova sekcija u bočnom izborniku (na mobitelu: **Kids** i **Više** u donjoj traci).
 
@@ -84,7 +102,7 @@ Nova sekcija u bočnom izborniku (na mobitelu: **Kids** i **Više** u donjoj tra
 
 ## Postavljanje (jednom)
 
-1. Uploadaj sve datoteke i mapu `vendor/` u repo (`planner.html`, `app.js`, `store.js`, `drinks-data.js`, `kitchen.js`, `diy.js`, `kids.js`, `boot.js`, `features.css`, `firebase.js`, `vendor/sortable.min.js`, `index.html`, `sw.js`, `manifest.webmanifest`, `icon*.png`, `icon.svg`, `firestore.rules`).
+1. Uploadaj sve datoteke i mapu `vendor/` u repo (`planner.html`, `app.js`, `store.js`, `drinks-data.js`, `kitchen.js`, `diy.js`, `kids.js`, `trips.js`, `pins.js`, `webimg.js`, `recipeimport.js`, `boot.js`, `features.css`, mape `img/` i `data/`, `firebase.js`, `vendor/sortable.min.js`, `index.html`, `sw.js`, `manifest.webmanifest`, `icon*.png`, `icon.svg`, `firestore.rules`).
 2. **GitHub Pages**: Settings → Pages → Source: *Deploy from a branch* → `main` / root. Adresa će biti `https://hrvojekladnicki.github.io/Planner/`.
 3. **Firebase Console → Authentication → Settings → Authorized domains**: dodaj `hrvojekladnicki.github.io`. Bez toga Google prijava ne radi s te adrese.
 4. **Firestore → Rules**: zalijepi sadržaj `firestore.rules` → **Publish**. Ovo je obavezno: pravila su jedino što štiti podatke, a ujedno omogućuju dijeljenje.

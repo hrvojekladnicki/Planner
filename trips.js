@@ -231,7 +231,7 @@ function viewTrip(id,sub){
   <div class="page-head"><div style="min-width:0;flex:1"><a class="crumb" href="#/izleti">${icon('chevL')}Izleti i putovanja</a>
     <div class="ptitle"><input class="emo-in" ${B} data-path="emoji" value="${esc(t.emoji||'')}" maxlength="4" placeholder="🧳" aria-label="Ikona"><input class="note-title" ${B} data-path="title" value="${esc(t.title||'')}" placeholder="Naziv izleta" aria-label="Naziv"></div>
     <div class="mini-stats">${tripPill(t.status)}<span class="pill">${icon('calendar')} ${esc(fmtRange(t))}${nights(t)?` · ${nights(t)} ${plural(nights(t),'noć','noći','noći')}`:''}</span>${t.place?`<a class="pill" href="${esc(mapsQ(t.place))}" target="_blank" rel="noopener" style="text-decoration:none">📍 ${esc(t.place)}</a>`:''}${untilTxt(t)?`<span class="pill pill-week">${esc(untilTxt(t))}</span>`:''}</div></div>
-    <div class="head-acts"><button class="ibtn big" data-act="tripMenu" data-id="${esc(t.id)}" title="Opcije">${icon('more')}</button></div></div>
+    <div class="head-acts">${pinBtn({t:'trip',id:t.id})}<button class="ibtn big" data-act="tripMenu" data-id="${esc(t.id)}" title="Opcije">${icon('more')}</button></div></div>
   <div class="ptabs seg seg-scroll">${tabs.map(([k,l,n])=>`<button class="${tab===k?'on':''}" data-act="tripTab" data-id="${esc(t.id)}" data-v="${k}">${l}${n!==''?` <small>${esc(n)}</small>`:''}</button>`).join('')}</div>
   ${body}`;
 }

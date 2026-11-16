@@ -49,7 +49,7 @@ function hydrateWiki(root=document){
       const cr=el.parentElement&&el.parentElement.querySelector('[data-wcredit]');if(cr)cr.innerHTML=creditHTML(r);});});
 }
 new MutationObserver(()=>{clearTimeout(hydrateWiki._t);hydrateWiki._t=setTimeout(()=>hydrateWiki(),30);}).observe(document.body,{childList:true,subtree:true});
-function creditHTML(c){if(!c)return'';return`<a class="wcredit" href="${esc(safeUrl(c.f))}" target="_blank" rel="noopener" title="Izvor fotografije">📷 ${esc([c.a,c.l].filter(Boolean).join(' · ')||'Wikimedia')} · Wikimedia Commons</a>`;}
+function creditHTML(c){if(!c)return'';return`<a class="wcredit" href="${esc(safeUrl(c.f))}" target="_blank" rel="noopener" title="Izvor fotografije">📷 ${esc([c.a,c.l].filter(Boolean).join(' · ')||(c.s?'Izvor':'Wikimedia'))} · ${esc(c.s||'Wikimedia Commons')}</a>`;}
 
 /* ───────── odabir fotke s weba ───────── */
 async function downloadToBlob(url){

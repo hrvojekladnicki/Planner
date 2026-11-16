@@ -177,6 +177,7 @@ function getList(loc){
 }
 function findTask(id){
   if(!id)return null;
+  {const pi=(state.pins||[]).findIndex(p=>p.id===id);if(pi>=0)return{kind:'pin',list:state.pins,task:state.pins[pi],index:pi};}
   let i=state.highPriority.findIndex(t=>t.id===id);
   if(i>=0)return{kind:'hp',list:state.highPriority,task:state.highPriority[i],index:i};
   for(const wk in state.weeklyTasks)for(const dk in state.weeklyTasks[wk]){const l=state.weeklyTasks[wk][dk];if(!Array.isArray(l))continue;i=l.findIndex(x=>x.id===id);if(i>=0)return{kind:'day',wk,dk,list:l,task:l[i],index:i};}
@@ -190,6 +191,7 @@ function whereLabel(r){
   if(r.kind==='hp')return'Hitno';
   if(r.kind==='day')return shortDay(dateFromDk(r.dk));
   if(r.kind==='archive')return'Arhiva';
+  if(r.kind==='pin')return'📌 Dashboard lista';
   if(r.kind==='item'){const t=tabById(r.tabId);return t?splitName(t.name).label:'';}
   return'';
 }
@@ -205,6 +207,7 @@ function tabForTask(t){
 
 /* ───────── REMINDERS ───────── */
 function allTasksIter(cb){
+  (state.pins||[]).forEach(p=>cb(p,{kind:'pin'}));
   state.highPriority.forEach(t=>cb(t,{kind:'hp'}));
   for(const wk in state.weeklyTasks)for(const dk in state.weeklyTasks[wk])(state.weeklyTasks[wk][dk]||[]).forEach(t=>cb(t,{kind:'day',wk,dk}));
   for(const tid in state.items)(state.items[tid]||[]).forEach(t=>cb(t,{kind:'item',tabId:tid}));
@@ -252,7 +255,8 @@ window.addEventListener('hashchange',()=>{const r=route();const k=viewKey(r);if(
 /* ───────── RENDER ───────── */
 function renderAll(){
   if(!$('#app').classList.contains('ready'))return;
-  const a=document.activeElement;const fk=a&&a.dataset?a.dataset.fk:null;
+  const a=document.activeElement;const fk=a&&a.dataset?(a.dataset.fk||null):null;let selS=null,selE=null;try{if((fk||(a&&a.dataset&&a.dataset.bind))&&a.selectionStart!=null){selS=a.selectionStart;selE=a.selectionEnd;}}catch(e){}
+  const bindKey=a&&a.dataset&&a.dataset.bind?a.dataset.bind+'|'+a.dataset.path:null;
   const r=route();
   if(r.v==='tab'&&!tabById(r.id)){location.hash='#/';return;}
   if(r.v==='note'&&!noteById(r.id)){location.hash='#/notes';return;}
@@ -273,7 +277,8 @@ function renderAll(){
   if(VIEWS[r.v]&&VIEWS[r.v].after)VIEWS[r.v].after(r);
   $$('#view textarea.grow').forEach(autoGrow);
   if(r.v==='dash')gcalEnsureWeek(viewingWeekKey||getCurrentWeekKey());
-  if(fk&&!(r.v==='note'&&focusBlock)){const n=document.querySelector(`[data-fk="${fk}"]`);if(n){n.focus({preventScroll:true});}}
+  if(fk&&!(r.v==='note'&&focusBlock)){const n=document.querySelector(`[data-fk="${fk}"]`);if(n){n.focus({preventScroll:true});try{if(selS!=null)n.setSelectionRange(selS,selE);}catch(e){}}}
+  else if(bindKey){const[bid,bp]=bindKey.split('|');const n=$$('[data-bind]').find(x=>x.dataset.bind===bid&&x.dataset.path===bp);if(n){n.focus({preventScroll:true});try{if(selS!=null)n.setSelectionRange(selS,selE);}catch(e){}}}
   if(r.v==='note')autoGrowAll();
   if(r.hl){requestAnimationFrame(()=>{const el=document.querySelector(`[data-id="${CSS.escape(r.hl)}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('flash');}});}
   justToggled=null;justAdded=null;
@@ -324,11 +329,11 @@ function renderShell(r){
         <button class="ibtn" data-act="logout" title="Odjava">${icon('logout')}</button>
       </div>
     </div>`;
-  $('#deskTools').innerHTML=`<button class="ibtn" data-act="notif" title="Podsjetnici" id="bellDesk">${icon('bell')}</button>
+  $('#deskTools').innerHTML=`<button class="ibtn" data-act="undo" title="Poništi zadnju promjenu (Ctrl+Z)" id="undoDesk">${icon('undo')}</button><button class="ibtn" data-act="notif" title="Podsjetnici" id="bellDesk">${icon('bell')}</button>
     <button class="ibtn" data-act="quickAdd" title="Brzo dodaj (N)">${icon('plus')}</button>`;
   $('#topbar').innerHTML=`<a class="brand" href="#/" style="text-decoration:none"><div class="brand-mark">${icon('check')}</div><b>Planner</b></a>
     <span class="sync" id="syncTop"><span class="dot"></span><span class="txt">…</span></span>
-    <button class="ibtn" data-act="notif" id="bellTop" aria-label="Podsjetnici">${icon('bell')}</button>
+    <button class="ibtn" data-act="undo" id="undoTop" aria-label="Poništi">${icon('undo')}</button><button class="ibtn" data-act="notif" id="bellTop" aria-label="Podsjetnici">${icon('bell')}</button>
     <button class="ibtn" data-act="account" aria-label="Račun"><span class="avatar" style="width:28px;height:28px">${user.photo?`<img src="${esc(user.photo)}" alt="" referrerpolicy="no-referrer">`:esc((user.name||'?')[0])}</span></button>`;
   const isTab=r.v==='tab';
   $('#bottomNav').innerHTML=`
@@ -374,15 +379,19 @@ function taskHTML(t,o={}){
   if(t.gcal&&t.gcal.link)meta.push(`<a class="chip chip-gcal" href="${esc(safeUrl(t.gcal.link))}" target="_blank" rel="noopener" title="Otvori u Google Calendaru">${icon('calendar')}Kalendar</a>`);
   if(t.reminder&&t.reminder.on){const rs=remState(t);meta.push(`<span class="chip chip-rem ${rs}">${icon('bell')}${esc(fmtRem(t.reminder.at))}</span>`);}
   const note=o.kind==='item'?t.info:t.note;
+  const ck=Array.isArray(t.checks)?t.checks.filter(c=>c.x):[];if(ck.length)meta.unshift(`<span class="chip${ck.every(c=>c.d)?' chip-done':''}">${icon('checklist')}${ck.filter(c=>c.d).length}/${ck.length}</span>`);
+  if(typeof isPinned==='function'&&o.kind==='item'&&isPinned({t:'item',id:t.id}))meta.unshift('<span class="chip chip-pin">📌</span>');
   return`<li class="${cls.join(' ')}" data-id="${esc(t.id)}">
     ${o.drag===false?'':`<span class="grip" title="Povuci za premještanje">${icon('grip')}</span>`}
-    <button class="check" data-act="toggle" data-id="${esc(t.id)}" aria-label="${t.done?'Vrati kao nedovršeno':'Označi kao gotovo'}">${icon('check')}</button>
+    ${o.plain?'<span class="bullet"></span>':`<button class="check" data-act="toggle" data-id="${esc(t.id)}" aria-label="${t.done?'Vrati kao nedovršeno':'Označi kao gotovo'}">${icon('check')}</button>`}
     <div class="task-body" data-act="edit" data-id="${esc(t.id)}">
       <div class="task-title">${linkify(title(t))}</div>
       ${note&&!o.compact?`<div class="task-note">${linkify(note)}</div>`:''}
       ${meta.length?`<div class="task-meta">${meta.join('')}</div>`:''}
+      ${ck.length&&!o.compact?`<ul class="subchecks">${ck.map(c=>`<li class="${c.d?'done':''}"><button class="sc" data-act="subTog" data-id="${esc(t.id)}" data-c="${esc(c.id)}" aria-label="Označi">${icon('check')}</button><span>${linkify(c.x)}</span></li>`).join('')}</ul>`:''}
     </div>
     <div class="task-actions">
+      ${o.kind==='item'?`<button class="ibtn ibtn-accent" data-act="pin" data-t="item" data-id="${esc(t.id)}" title="Na dashboard listu (prioritet, rok, podsjetnik)">📌</button>`:''}
       ${o.send?`<button class="ibtn ibtn-accent" data-act="send" data-id="${esc(t.id)}" title="Pošalji na To Do listu">${icon('pin')}</button>`:''}
       <button class="ibtn" data-act="edit" data-id="${esc(t.id)}" title="Uredi">${icon('edit')}</button>
       <button class="ibtn ibtn-danger" data-act="del" data-id="${esc(t.id)}" title="Obriši">${icon('trash')}</button>
@@ -572,7 +581,9 @@ function viewTab(tab){
   <div class="page-head">
     <div><a class="crumb" href="#/">${icon('chevL')}Dashboard</a><h1><span class="emo">${esc(n.emo)}</span>${esc(n.label)}</h1>
       <div class="mini-stats" style="margin-top:8px"><span class="pill">${items.length} ukupno</span><span class="pill pill-urgent">${items.length-done} na čekanju</span><span class="pill pill-ok">${done} završeno</span></div></div>
-    <button class="btn btn-outline btn-sm" data-act="tabEdit" data-id="${esc(tab.id)}">${icon('edit')}Uredi listu</button>
+    <div class="head-acts"><button class="btn btn-ghost btn-sm" data-act="tabPlain" data-id="${esc(tab.id)}" title="Prikaz stavki">${tab.plain?'• Bez checkboxa':'☑ Checkboxi'}</button>
+      ${typeof pinBtn==='function'?pinBtn({t:'tab',id:tab.id}):''}
+      <button class="btn btn-outline btn-sm" data-act="tabEdit" data-id="${esc(tab.id)}">${icon('edit')}Uredi listu</button></div>
   </div>
 
   <section class="card quick-add${ts.open?' open':''}" id="qa">
@@ -603,7 +614,7 @@ function viewTab(tab){
     <span class="spacer"></span>
     <label class="searchbox">${icon('search')}<input class="input" data-fk="tsearch" data-input="tabSearch" data-id="${esc(tab.id)}" value="${esc(ts.q)}" placeholder="Pretraži…"></label>
   </div>
-  <ul class="tasks items" id="itemList" data-tab="${esc(tab.id)}" data-empty="${q?'Ništa ne odgovara pretrazi.':'Nema stavki — dodaj prvu gore.'}">${vis.map(i=>taskHTML(i,{kind:'item',send:true,prioChip:true})).join('')}</ul>
+  <ul class="tasks items" id="itemList" data-tab="${esc(tab.id)}" data-empty="${q?'Ništa ne odgovara pretrazi.':'Nema stavki — dodaj prvu gore.'}">${vis.map(i=>taskHTML(i,{kind:'item',send:!tab.plain,prioChip:true,plain:!!tab.plain})).join('')}</ul>
   <div style="font-size:.76rem;color:var(--text-3);margin-top:6px">${icon('pin')} šalje stavku na To Do listu (hitno ili na određeni dan) — ostaju povezane: kvačica na jednom mjestu označi i drugo.</div>`;
 }
 function prioSeg(name,val,withNone){
@@ -701,7 +712,7 @@ function viewNote(n){
   return`
   <div class="page-head note-head"><div style="flex:1;min-width:0"><a class="crumb" href="#/notes">${icon('chevL')}Notes</a>
     <input class="note-title" id="noteTitle" data-fk="ntitle" data-note-title="${esc(n.id)}" value="${esc(n.title)}" placeholder="Naslov" maxlength="80" aria-label="Naslov bilješke"></div>
-    <button class="ibtn" data-act="noteMenu" data-id="${esc(n.id)}" title="Opcije" aria-label="Opcije">${icon('more')}</button>
+    ${typeof pinBtn==='function'?pinBtn({t:'note',id:n.id}):''}<button class="ibtn" data-act="noteMenu" data-id="${esc(n.id)}" title="Opcije" aria-label="Opcije">${icon('more')}</button>
   </div>
   <section class="card note-card">
     <div class="note-tools">
@@ -742,6 +753,9 @@ function noteKeydown(e,ta){
   }
   if(e.key==='Backspace'&&pos===0&&end===0){
     if(!b.x&&n.blocks.length>1){e.preventDefault();const i=n.blocks.indexOf(b);n.blocks.splice(i,1);const prev=n.blocks[Math.max(0,i-1)];focusBlock=prev.id;focusCaret=null;touchNote(n);renderAll();return true;}
+    const i=n.blocks.indexOf(b);const prev=n.blocks[i-1];
+    // spoji s prethodnim retkom (kao u Google Keepu / Notionu)
+    if(prev&&prev.t!=='h'){e.preventDefault();const caret=prev.x.length;prev.x+=b.x;n.blocks.splice(i,1);focusBlock=prev.id;focusCaret=caret;touchNote(n);renderAll();return true;}
     if(b.t!=='p'){e.preventDefault();b.t='p';b.d=false;focusBlock=b.id;focusCaret=0;touchNote(n);renderAll();return true;}
   }
   if((e.key==='ArrowUp'&&pos===0)||(e.key==='ArrowDown'&&end===ta.value.length)){
@@ -1114,7 +1128,8 @@ function editTask(id){
       ${r.kind==='day'?`<div class="field"><label for="f_date">Dan (promjena premješta zadatak)</label><input id="f_date" type="date" value="${dateVal}"></div>`:''}
       ${r.kind==='hp'?`<div class="field"><label for="f_date">Prebaci u tjedni plan (opcionalno)</label><input id="f_date" type="date" value=""></div>`:''}
       ${isItem?`<div class="field"><label for="f_due">Rok</label><input id="f_due" type="date" value="${esc(t.due||'')}"></div>`:''}
-      <div class="field"><label for="f_note">${isItem?'Dodatne informacije':'Bilješka'}</label><textarea id="f_note" placeholder="Detalji, napomene…">${esc(isItem?t.info||'':t.note||'')}</textarea></div>
+      <div class="field"><label for="f_note">${isItem?'Opis / dodatne informacije':'Bilješka'}</label><textarea id="f_note" placeholder="Detalji, napomene…">${esc(isItem?t.info||'':t.note||'')}</textarea></div>
+      <div class="field"><label for="f_checks">${icon('checklist')} Checklista <small>— jedna stavka po retku; <code>[x]</code> na početku = označeno</small></label><textarea id="f_checks" class="mono" rows="3" placeholder="npr.&#10;kupiti ljepilo&#10;[x] izmjeriti otvor">${esc((t.checks||[]).map(c=>(c.d?'[x] ':'')+c.x).join('\n'))}</textarea></div>
       <div class="rem-box${rem?' on':''}" id="remBox">
         <label class="switch"><input type="checkbox" id="f_rem" ${rem?'checked':''}><span class="track"></span>${icon('bell')} Podsjetnik</label>
         <div class="when"><input class="input" type="datetime-local" id="f_rem_at" value="${esc(rem?t.reminder.at:defaultRemAt(r))}">
@@ -1146,6 +1161,9 @@ function saveEdit(id){
   const p=segVal('f_prio',el);if(p)t.priority=p;else delete t.priority;
   const note=$('#f_note',el).value.trim();if(isItem)t.info=note;else t.note=note;
   if(isItem){const due=$('#f_due',el).value;if(due)t.due=due;else delete t.due;}
+  {const old=t.checks||[];const lines=$('#f_checks',el).value.split('\n').map(x=>x.trim()).filter(Boolean);
+    t.checks=lines.map(l=>{const d=/^\[[xX✓]\]\s*/.test(l);const x=l.replace(/^\[[ xX✓]?\]\s*|^[-*•☐☑]\s*/,'').trim();const o=old.find(c=>c.x===x);return{id:o?o.id:uid('c'),x,d:d||(o?o.d&&!/^\[\s?\]/.test(l):false)};});
+    if(!t.checks.length)delete t.checks;}
   const remOn=$('#f_rem',el).checked,remAt=$('#f_rem_at',el).value;
   if(remOn&&remAt){const changed=!t.reminder||t.reminder.at!==remAt||!t.reminder.on;t.reminder={on:true,at:remAt,seen:changed?false:!!t.reminder.seen};if(changed)notified.delete(t.id);if(remOn&&'Notification'in window&&Notification.permission==='default')askNotifPermission(true);}
   else delete t.reminder;
@@ -1528,7 +1546,8 @@ document.addEventListener('paste',e=>{const t=e.target;if(t.classList&&t.classLi
 document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('nb-in'))lastNoteBlock=t.dataset.bid;});
 document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.hasAttribute('data-fav'))t.replaceWith(document.createTextNode('🌐'));},true);
 $('#googleBtn').addEventListener('click',()=>signIn());
-window.onPlannerMeta=m=>{plannerMeta=m;if(!m.own)toast('Otvoren je planner: '+(m.ownerName||m.ownerEmail));renderAll();};
+window.onPlannerMeta=m=>{const prev=JSON.stringify(plannerMeta);plannerMeta=m;if(JSON.stringify(m)===prev)return; // ništa novo → ne crtaj ponovno (inače kursor skače)
+  if(!m.own&&JSON.parse(prev).ownerEmail!==m.ownerEmail)toast('Otvoren je planner: '+(m.ownerName||m.ownerEmail));scheduleRemoteRender();};
 window.onSharedList=list=>{sharedPlanners=list;renderAll();};
 window.onCloudReady=()=>{cloudReady=true;if(!startupDone){startupDone=true;setTimeout(()=>checkReminders(true),600);}};
 

@@ -540,3 +540,83 @@ b.tcol-title,div.tcol-sub{display:block}
   .cost-row{grid-template-columns:26px 1fr 90px 32px}.cost-row select{grid-column:2/4}
   .kv-row{grid-template-columns:1fr 32px}.kv-row .kv-k{grid-column:1/-1}
 }
+/* ═════ v4.4: dashboard lista, podzadaci, projekti/OPG ═════ */
+.pin-on{color:var(--accent)!important;background:var(--accent-soft)!important;border-color:var(--accent-line)!important}
+.ibtn.pin-on{filter:none}
+button.ibtn:not(.pin-on)[data-act="pin"]{filter:grayscale(1);opacity:.7}
+button.ibtn[data-act="pin"]:hover{filter:none;opacity:1}
+.pin-card{margin-bottom:18px;border-color:var(--accent-line);background:linear-gradient(180deg,var(--accent-soft),var(--surface) 110px)}
+.pin-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:4px 18px 8px}
+.pin-filters .searchbox{min-width:160px;max-width:260px}
+.pin-filters .input{padding:7px 10px}
+.pins{display:flex;flex-direction:column;gap:6px}
+.pin{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 10px 10px 14px}
+.pin::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--line-strong)}
+.pin.p-high::before{background:var(--urgent)}.pin.p-medium::before{background:var(--warn)}.pin.p-low::before{background:var(--low)}
+.pin.done{opacity:.55}.pin.done .pin-title{text-decoration:line-through}
+.pin.done .pin-check{background:var(--ok);border-color:var(--ok);color:#fff}
+.pin.missing{opacity:.5}
+.pin-top{display:flex;gap:10px;align-items:flex-start}
+.pin-emo{font-size:1.25rem;line-height:1.3}
+.pin-main{flex:1;min-width:0}
+.pin-title{font-weight:750;text-decoration:none;font-size:.95rem}
+.pin-title:hover{color:var(--accent)}
+.pin .task-actions{opacity:.6}.pin:hover .task-actions{opacity:1}
+.chip-pin{background:var(--accent-soft)!important}
+.chip-done{color:var(--ok);background:var(--ok-soft)}
+.subchecks{list-style:none;display:flex;flex-direction:column;gap:1px;margin:6px 0 0}
+.subchecks li{display:flex;align-items:center;gap:8px;font-size:.86rem;padding:3px 4px;border-radius:8px}
+.subchecks li:hover{background:var(--surface-2)}
+.subchecks li > span{flex:1;min-width:0;word-break:break-word}
+.subchecks li small{color:var(--text-3);font-weight:700;font-size:.72rem}
+.subchecks li.done > span{color:var(--text-3);text-decoration:line-through}
+.sc{width:18px;height:18px;border-radius:5px;border:2px solid var(--line-strong);display:grid;place-items:center;color:transparent;flex-shrink:0}
+.sc .i{width:11px;height:11px;stroke-width:3}
+.subchecks li.done .sc{background:var(--ok);border-color:var(--ok);color:#fff}
+.pin-items{margin-left:40px}
+.pin-add{padding:2px 0!important}.pin-add .input{padding:6px 9px;font-size:.84rem}
+.pin-what{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--surface-2)}
+.pin-what span{font-size:1.5rem}.pin-what b{display:block}.pin-what small{color:var(--text-3);font-size:.78rem}
+.pp-list{display:flex;flex-direction:column;gap:2px;max-height:56vh;overflow:auto}
+.pp-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;text-align:left;width:100%}
+.pp-row:hover{background:var(--surface-2)}.pp-row span{flex:1;font-weight:700;font-size:.9rem}.pp-row small{color:var(--text-3);font-size:.76rem}
+.pp-row.on{background:var(--accent-soft)}
+.bullet{width:7px;height:7px;border-radius:50%;background:var(--text-3);margin:9px 7px 0 7px;flex-shrink:0}
+.ptabs-row{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+.ptabs-row .ptabs{margin:0;flex:1;min-width:0}
+.subcats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:-4px 0 16px}
+.subcat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);text-decoration:none;text-align:left;transition:border-color .15s,transform .15s}
+.subcat:hover{border-color:var(--accent);transform:translateY(-1px)}
+.subcat span{font-size:1.3rem}.subcat b{font-size:.92rem}.subcat small{color:var(--text-3);font-size:.74rem}
+.subcat.add{border-style:dashed;color:var(--text-3);flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}
+.gen-ov{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.gen-ov > .card{margin:0}
+.gtask{display:flex;justify-content:space-between;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--line);font-weight:650;font-size:.9rem}
+.gtask small{color:var(--text-3);font-weight:800;white-space:nowrap}.gtask.over small{color:var(--urgent)}
+.tk-list{display:flex;flex-direction:column;gap:4px}
+.tk-row{display:grid;grid-template-columns:26px minmax(0,1fr) 150px 34px 32px;gap:6px;align-items:center;padding:4px;border-radius:12px}
+.tk-row:hover{background:var(--surface-2)}
+.tk-row.over .tk-d{color:var(--urgent);font-weight:800}
+.tk-row.have .tk-x{text-decoration:line-through;color:var(--text-3)}
+.tk-main{display:flex;flex-direction:column}
+.tk-row .input{padding:6px 9px;border-color:transparent;background:transparent}
+.tk-row .input:hover{border-color:var(--line)}
+.tk-x{font-weight:700}.tk-note{font-size:.8rem!important;color:var(--text-2)}
+.tk-row .ibtn{width:30px;height:30px}
+.done-box{margin-top:12px}.done-box summary{cursor:pointer;font-weight:800;color:var(--text-3);font-size:.84rem}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+.cl-grid > .card{margin:0!important}
+.cl-items li{gap:6px}.cl-items .grip{opacity:.35}
+.cl-x{flex:1;border-color:transparent!important;background:transparent!important;padding:4px 6px!important}
+.cl-items li.done .cl-x{text-decoration:line-through;color:var(--text-3)}
+.nt-list{display:flex;flex-direction:column;gap:12px}
+.nt-list > .card{margin:0!important}
+.nt-links{margin-top:6px;font-size:.82rem;display:flex;gap:10px;flex-wrap:wrap}
+.mods{display:flex;flex-direction:column;gap:12px;padding:6px 2px}
+@media (max-width:760px){
+  .gen-ov{grid-template-columns:1fr}
+  .tk-row{grid-template-columns:26px 1fr 34px 32px}.tk-d{grid-column:2;grid-row:2}
+  .pin-items{margin-left:0}
+  .pin-filters .searchbox{max-width:none;min-width:100%}
+}
+.pin-filters .searchbox .input{padding-left:34px}
